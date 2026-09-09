@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>50代がAIを始めるときに最初にやる5つ</title>
+<style>
+  /* ===== フォント（pdf/fonts/ に置いた Noto Sans JP を埋め込む） ===== */
+  @font-face {
+    font-family: "Noto Sans JP";
+    src: url("fonts/NotoSansJP-Regular.woff") format("woff");
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: "Noto Sans JP";
+    src: url("fonts/NotoSansJP-Bold.woff") format("woff");
+    font-weight: 700;
+    font-style: normal;
+  }
+
+  /* ===== 配色（LPと同じ） ===== */
+  :root {
+    --text: #1f2937;
+    --text-sub: #4b5563;
+    --heading: #0f172a;
+    --accent: #0284c7;
+    --accent-soft: #e0f2fe;
+    --bg-alt: #f8fafc;
+    --line: #e2e8f0;
+    --line-green: #06c755;
+  }
+
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Noto Sans JP", sans-serif;
+    color: var(--text);
+    font-size: 14pt;          /* 本文 12pt 以上 */
+    line-height: 2.1;
+    letter-spacing: 0.03em;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ===== 1ページ = A4 ===== */
+  .page {
+    width: 210mm;
+    height: 297mm;
+    padding: 24mm 22mm 20mm;
+    position: relative;
+    page-break-after: always;
+    break-after: page;
+    background: #fff;
+    overflow: hidden;
+  }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+
+  /* ページ番号とフッター */
+  .foot {
+    position: absolute; left: 22mm; right: 22mm; bottom: 12mm;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 9.5pt; color: var(--text-sub); letter-spacing: 0.05em;
+  }
+  .foot .num { color: var(--accent); font-weight: 700; }
+
+  h1, h2 { color: var(--heading); font-weight: 700; margin: 0; line-height: 1.5; }
+  p { margin: 0 0 1.2em; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ===== 表紙 ===== */
+  .cover {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    background: linear-gradient(180deg, var(--accent-soft) 0%, #ffffff 70%);
+  }
+  .cover .label {
+    display: inline-block; background: var(--accent); color: #fff;
+    font-size: 11pt; font-weight: 700; letter-spacing: 0.15em;
+    padding: 4px 18px; border-radius: 999px; margin-bottom: 14mm;
+  }
+  .cover h1 { font-size: 30pt; line-height: 1.55; }
+  .cover h1 .big { display: block; font-size: 40pt; color: var(--accent); margin-top: 4mm; }
+  .cover .avatar {
+    width: 48mm; height: 48mm; border-radius: 50%; object-fit: cover;
+    margin: 16mm auto 8mm; border: 2mm solid #fff;
+    box-shadow: 0 4px 16px rgba(2,132,199,.22);
+  }
+  .cover .author { font-size: 15pt; font-weight: 700; color: var(--heading); line-height: 1.7; }
+  .cover .ig { font-size: 12pt; color: var(--text-sub); }
+
+  /* ===== 本文ページ ===== */
+  .sec-label {
+    font-size: 10.5pt; font-weight: 700; color: var(--accent); letter-spacing: 0.15em;
+    margin-bottom: 3mm;
+  }
+  .page h2 {
+    font-size: 22pt; padding-bottom: 4mm; margin-bottom: 10mm;
+    border-bottom: 1.2mm solid var(--accent);
+  }
+  .page h2 .sub { display: block; font-size: 14pt; color: var(--text-sub); font-weight: 500; margin-top: 1mm; }
+  .num-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16mm; height: 16mm; border-radius: 50%;
+    background: var(--accent); color: #fff; font-size: 20pt; font-weight: 700;
+    margin-bottom: 5mm; line-height: 1;
+  }
+  .body { font-size: 14pt; }
+  .point {
+    margin-top: 9mm; padding: 6mm 7mm;
+    background: var(--bg-alt); border-left: 2mm solid var(--accent); border-radius: 0 3mm 3mm 0;
+    font-size: 13.5pt;
+  }
+  .point .pt-label { font-size: 10.5pt; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; display: block; margin-bottom: 1mm; }
+  .point p { margin: 0; font-weight: 700; color: var(--heading); line-height: 1.9; }
+
+  /* ===== 最終ページの案内 ===== */
+  .links { margin-top: 12mm; }
+  .link-card {
+    display: flex; align-items: center; gap: 6mm;
+    padding: 6mm 7mm; margin-bottom: 5mm;
+    border: 0.5mm solid var(--line); border-radius: 4mm; background: #fff;
+  }
+  .link-card .mark {
+    flex: 0 0 16mm; width: 16mm; height: 16mm; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 10pt; letter-spacing: 0.05em;
+  }
+  .link-card .mark.ig { background: linear-gradient(135deg, #f58529, #dd2a7b 55%, #8134af); }
+  .link-card .mark.ln { background: var(--line-green); }
+  .link-card .t { font-weight: 700; color: var(--heading); font-size: 13pt; line-height: 1.5; }
+  .link-card .u { font-size: 11pt; color: var(--accent); line-height: 1.5; word-break: break-all; }
+  .link-card a { color: var(--accent); text-decoration: none; }
+  .copyright { margin-top: 12mm; text-align: center; font-size: 10.5pt; color: var(--text-sub); }
+</style>
+</head>
+<body>
+
+<!-- ========== 表紙 ========== -->
+<section class="page cover">
+  <span class="label">LINE登録特典</span>
+  <h1>50代がAIを始めるときに<span class="big">最初にやる5つ</span></h1>
+  <img class="avatar" src="../assets/icon-480.jpg" alt="ひろきのアイコン">
+  <div class="author">50代からのAI相棒｜ひろき</div>
+  <div class="ig">Instagram @ai_jvhiro</div>
+</section>
+
+<!-- ========== はじめに ========== -->
+<section class="page">
+  <div class="sec-label">INTRODUCTION</div>
+  <h2>はじめに</h2>
+  <div class="body">
+    <p>このPDFは、50代・非エンジニアの会社員が、AIを始めて半年で「声で売上を答えてくれる相棒」を作るまでに、遠回りしたことを5つにまとめたものです。</p>
+    <p>難しい話はありません。最初の1か月で「これを知っていれば」と思ったことだけです。</p>
+  </div>
+  <div class="point">
+    <span class="pt-label">この PDF の 5 つ</span>
+    <p>1. 何から触ればいいのか（道具の選び方）<br>2. 最初の1週間でやること<br>3. 「自分の仕事」に落とすコツ<br>4. つまずいたときの聞き方<br>5. 続けるための小さな仕組み</p>
+  </div>
+  <div class="foot"><span>50代がAIを始めるときに最初にやる5つ</span><span class="num">2</span></div>
+</section>
+
+<!-- ========== 1 ========== -->
+<section class="page">
+  <div class="num-badge">1</div>
+  <h2>何から触ればいいのか<span class="sub">道具の選び方</span></h2>
+  <div class="body">
+    <p>最初はChatGPT、Claude、Geminiと名前だけ知っていて、どれを使えばいいか分かりませんでした。</p>
+    <p>結論は「どれか1つに決めて、有料プランに入る」です。無料版を3つ試すより、1つの有料版を1か月使い込む方が、はるかに早く慣れます。</p>
+    <p>私はClaudeにしました。理由は、文章のやりとりが自然で、後から「コードを書いてもらう」段階に進みやすかったからです。月3,000円ほどで、仕事の道具として考えれば安い買い物でした。</p>
+  </div>
+  <div class="point">
+    <span class="pt-label">POINT</span>
+    <p>どれか1つに決めて、有料プランに入る。</p>
+  </div>
+  <div class="foot"><span>50代がAIを始めるときに最初にやる5つ</span><span class="num">3</span></div>
+</section>
+
+<!-- ========== 2 ========== -->
+<section class="page">
+  <div class="num-badge">2</div>
+  <h2>最初の1週間でやること</h2>
+  <div class="body">
+    <p>いきなり「業務を自動化しよう」と考えないことです。</p>
+    <p>最初の1週間は、毎日1つ、仕事のメールの下書きや、資料の要約、分からない言葉の説明を頼むだけでいい。大事なのは「AIに話しかける」のを習慣にすることです。</p>
+    <p>私は「今日の作業でいちばん面倒だったこと」を毎晩AIに話していました。そのうち「それ、こうすればできますよ」と返ってくるようになり、自動化の入口が見えました。</p>
+  </div>
+  <div class="point">
+    <span class="pt-label">POINT</span>
+    <p>毎日1つ、AIに話しかけるのを習慣にする。</p>
+  </div>
+  <div class="foot"><span>50代がAIを始めるときに最初にやる5つ</span><span class="num">4</span></div>
+</section>
+
+<!-- ========== 3 ========== -->
+<section class="page">
+  <div class="num-badge">3</div>
+  <h2>「自分の仕事」に落とすコツ</h2>
+  <div class="body">
+    <p>一般的な使い方の記事を読んでも、自分の仕事にはつながりません。</p>
+    <p>コツは「自分が毎月やっている作業を、そのままAIに説明する」ことです。「毎月末に、この表とこの表を突き合わせて、合わないところを探している」のように、実際の手順を口で説明するだけで、AIは「その突き合わせを自動でやる方法」を提案してきます。</p>
+    <p>私の最初の道具（入金の照合ツール）は、こうして生まれました。</p>
+  </div>
+  <div class="point">
+    <span class="pt-label">POINT</span>
+    <p>毎月やっている作業を、そのままAIに説明する。</p>
+  </div>
+  <div class="foot"><span>50代がAIを始めるときに最初にやる5つ</span><span class="num">5</span></div>
+</section>
+
+<!-- ========== 4 ========== -->
+<section class="page">
+  <div class="num-badge">4</div>
+  <h2>つまずいたときの聞き方</h2>
+  <div class="body">
+    <p>エラーが出たり、動かなかったりしたとき、私は最初「分からない」で止まっていました。</p>
+    <p>今は、画面のスクリーンショットをそのままAIに貼って「この画面で何をすればいい？」と聞きます。文章で説明しようとしなくていい。画面を見せる、が一番早い。</p>
+    <p>もう1つは「何を言っているか分からない」と正直に言うこと。そう言えば、AIは言い直してくれます。</p>
+  </div>
+  <div class="point">
+    <span class="pt-label">POINT</span>
+    <p>画面を見せる。分からなければ、分からないと言う。</p>
+  </div>
+  <div class="foot"><span>50代がAIを始めるときに最初にやる5つ</span><span class="num">6</span></div>
+</section>
+
+<!-- ========== 5 ========== -->
+<section class="page">
+  <div class="num-badge">5</div>
+  <h2>続けるための小さな仕組み</h2>
+  <div class="body">
+    <p>やる気は続きません。続いたのは、「AIとの会話を止めない仕組み」を作ったからです。</p>
+    <p>私の場合は、作った道具を毎日使う場面に置いたこと（朝、売上を聞く）と、次にやりたいことをAIに覚えさせておいたこと。翌日、AIに「昨日の続きは？」と聞けば、そこから再開できる。</p>
+    <p>自分の記憶力に頼らない、が50代のコツです。</p>
+  </div>
+  <div class="point">
+    <span class="pt-label">POINT</span>
+    <p>自分の記憶力に頼らない。AIに覚えさせる。</p>
+  </div>
+  <div class="foot"><span>50代がAIを始めるときに最初にやる5つ</span><span class="num">7</span></div>
+</section>
+
+<!-- ========== おわりに・最終ページ ========== -->
+<section class="page">
+  <div class="sec-label">CLOSING</div>
+  <h2>おわりに</h2>
+  <div class="body">
+    <p>半年前の私は、この5つを全部知りませんでした。知っていたら、最初の1か月は1週間で済んだと思います。</p>
+    <p>ここから先の「実際にどう作ったか」は、Instagram（@ai_jvhiro）とこのLINEで、ありのまま出していきます。質問があれば、LINEにそのまま送ってください。</p>
+  </div>
+
+  <div class="links">
+    <div class="link-card">
+      <div class="mark ig">Insta</div>
+      <div>
+        <div class="t">Instagram：@ai_jvhiro</div>
+        <div class="u"><a href="https://www.instagram.com/ai_jvhiro/">https://www.instagram.com/ai_jvhiro/</a></div>
+      </div>
+    </div>
+    <div class="link-card">
+      <div class="mark ln">LINE</div>
+      <div>
+        <div class="t">公式LINE</div>
+        <div class="u"><a href="https://lin.ee/yuBrECZ5">https://lin.ee/yuBrECZ5</a></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="copyright">© 2026 ひろき（@ai_jvhiro）</div>
+  <div class="foot"><span>50代がAIを始めるときに最初にやる5つ</span><span class="num">8</span></div>
+</section>
+
+</body>
+</html>

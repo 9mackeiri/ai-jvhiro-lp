@@ -1,3 +1,5 @@
 .DS_Store
 # スクリーンショットは公開対象外（GitHubにも上げない）
 docs/screenshots/
+# PDF用フォント（約6MB・pdf/build.sh が自動取得する）
+pdf/fonts/

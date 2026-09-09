@@ -73,3 +73,18 @@ push すると GitHub Pages が自動で再配信します。反映まで通常 
 - Source：`main` ブランチの `/`（ルート）
 - 設定確認：`gh api repos/9mackeiri/ai-jvhiro-lp/pages`
 - 配信状況：`gh api repos/9mackeiri/ai-jvhiro-lp/pages/builds/latest`
+
+## 登録特典PDF（50代がAIを始めるときに最初にやる5つ）
+
+| ファイル | 役割 |
+|---|---|
+| `pdf/index.html` | PDF の元（文面・配色はここ。1つの `<section class="page">` が1ページ） |
+| `pdf/build.sh` | PDF を再生成するスクリプト（Google Chrome で PDF 化し、iCloud にもコピー） |
+| `pdf/fonts/` | 埋め込み用フォント Noto Sans JP（git 管理外・build.sh が自動取得） |
+| `assets/pdf/ai-first5-<ランダム8文字>.pdf` | 公開されている PDF 本体（URL は LINE 登録者にだけ渡す） |
+| `robots.txt` | `assets/pdf/` を検索エンジンのクロール対象外にする |
+
+- LP（index.html）から PDF へのリンクは置かない（LINE 登録後にだけ渡すため）
+- 文面を直したら `zsh pdf/build.sh` で再生成し、`git add -A && git commit && git push` で公開に反映
+- 再生成しても PDF のファイル名（URL）は変わらない。URL を変えたいときは `assets/pdf/` の PDF を削除してから再生成する
+- iCloud の保存先：`Cursor/インスタ投稿/50代がAIを始めるときに最初にやる5つ.pdf`（再生成のたびに上書き）
