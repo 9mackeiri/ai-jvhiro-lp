@@ -42,8 +42,10 @@
     display: flex; align-items: center; justify-content: center;
     margin-bottom: 44px;
   }
-  .logo img { max-height: 100%; max-width: 100%; }
-  .logo img.note { max-height: 260px; }        /* note は横長ワードマークなので高さを抑える */
+  /* 3社のアイコンは素材ごとに透明の余白が違うので、見た目の高さが 370px でそろうよう個別に指定 */
+  .logo img.ig  { height: 370px; }
+  .logo img.tt  { height: 370px; }
+  .logo img.note { height: 371px; }
   .logo svg { height: 380px; width: 380px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
   .label { font-size: 96px; font-weight: 700; line-height: 1.2; letter-spacing: .02em; }
@@ -56,20 +58,20 @@
 
   <!-- 1 左上: Instagram（公式グラデーショングリフ・Meta Brand Resource Center） -->
   <div class="cell">
-    <div class="logo"><img src="logos/Instagram_Glyph_Gradient.png" alt="Instagram"></div>
+    <div class="logo"><img class="ig" src="logos/Instagram_Glyph_Gradient.png" alt="Instagram"></div>
     <div class="label">Instagram</div>
   </div>
 
   <!-- 2 右上: TikTok（公式アイコン・TikTok for Developers Logo Pack） -->
   <div class="cell">
-    <div class="logo"><img src="logos/TikTok_Icon_Black_Circle.png" alt="TikTok"></div>
+    <div class="logo"><img class="tt" src="logos/TikTok_Icon_Black_Circle.png" alt="TikTok"></div>
     <div class="label">TikTok</div>
     <div class="sub">準備中</div>
   </div>
 
-  <!-- 3 左下: note（公式ワードマーク・note Visual Identity） -->
+  <!-- 3 左下: note（公式の角丸「n」アイコン・note Visual Identity の app/icon.svg） -->
   <div class="cell">
-    <div class="logo"><img class="note" src="logos/note_logo.svg" alt="note"></div>
+    <div class="logo"><img class="note" src="logos/note_icon.svg" alt="note"></div>
     <div class="label">note</div>
     <div class="sub">準備中</div>
   </div>
