@@ -8,19 +8,15 @@
   @font-face { font-family: "Noto Sans JP"; src: url("../pdf/fonts/NotoSansJP-Regular.woff") format("woff"); font-weight: 400; }
   @font-face { font-family: "Noto Sans JP"; src: url("../pdf/fonts/NotoSansJP-Bold.woff") format("woff"); font-weight: 700; }
 
-  /* ===== 配色（LPと同じ） ===== */
   :root {
-    --text: #1f2937;
-    --text-sub: #4b5563;
     --heading: #0f172a;
-    --accent: #0284c7;
-    --accent-soft: #e0f2fe;
-    --bg: #ffffff;
-    --line: #cfe3f1;
+    --text-sub: #6b7280;
+    --accent: #0284c7;   /* 吹き出しアイコン（LPの差し色） */
+    --divider: #d9d9d9;  /* 薄い灰色の区切り線 */
   }
 
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--bg); }
+  html, body { margin: 0; padding: 0; background: #fff; }
   body {
     width: 2500px; height: 1686px; overflow: hidden;
     font-family: "Noto Sans JP", "Hiragino Sans", sans-serif;
@@ -28,97 +24,63 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* ===== 左上のアイコン＋名乗り（左上セルの隅に小さく） ===== */
-  .who {
-    position: absolute; left: 40px; top: 36px;
-    display: flex; align-items: center; gap: 22px;
-    padding: 10px 34px 10px 10px; border-radius: 999px;
-    background: var(--accent-soft);
-  }
-  .who img {
-    width: 96px; height: 96px; border-radius: 50%; object-fit: cover;
-    border: 5px solid #fff;
-  }
-  .who .name { font-size: 40px; font-weight: 700; color: var(--heading); letter-spacing: .02em; }
-
-  /* ===== 2×2 ボタン（各 1250×843 ＝ LINEの「2×2」テンプレートと同じ分割） ===== */
-  .grid {
-    display: grid; grid-template-columns: 1250px 1250px; grid-template-rows: 843px 843px;
-  }
-  .btn {
+  /* ===== 2×2（各 1250×843 ＝ LINE の「2×2」テンプレートと同じ分割）===== */
+  .grid { position: relative; display: grid; grid-template-columns: 1250px 1250px; grid-template-rows: 843px 843px; }
+  .cell {
     position: relative;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center; background: #fff;
-    border-right: 6px solid var(--line); border-bottom: 6px solid var(--line);
   }
-  .btn:nth-child(2n) { border-right: 0; }
-  .btn:nth-child(n+3) { border-bottom: 0; }
+  /* 区切り線（2px・薄灰色）。タップ領域の境界（x=1250, y=843）をまたぐ位置に重ねる */
+  .grid::before, .grid::after { content: ""; position: absolute; z-index: 1; background: var(--divider); pointer-events: none; }
+  .grid::before { left: 1249px; top: 0; width: 2px; height: 1686px; }
+  .grid::after  { top: 842px; left: 0; height: 2px; width: 2500px; }
 
-  .icon {
-    width: 230px; height: 230px; border-radius: 50%;
-    background: var(--accent-soft);
+  /* ロゴ置き場：高さ 400px（セル高 843 の約 47%）。画像は比率を保って収める */
+  .logo {
+    height: 400px; width: 900px;
     display: flex; align-items: center; justify-content: center;
     margin-bottom: 44px;
   }
-  .icon svg { width: 130px; height: 130px; fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-  .label { font-size: 108px; font-weight: 700; line-height: 1.2; letter-spacing: .02em; }
-  .sub { margin-top: 26px; font-size: 52px; font-weight: 400; color: var(--text-sub); letter-spacing: .04em; }
-  .sub b { font-weight: 700; color: var(--accent); }
-  .num {
-    position: absolute; right: 44px; top: 40px;
-    width: 76px; height: 76px; border-radius: 50%;
-    background: var(--accent); color: #fff;
-    font-size: 44px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-  }
+  .logo img { max-height: 100%; max-width: 100%; }
+  .logo img.note { max-height: 260px; }        /* note は横長ワードマークなので高さを抑える */
+  .logo svg { height: 380px; width: 380px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  .label { font-size: 96px; font-weight: 700; line-height: 1.2; letter-spacing: .02em; }
+  .sub { margin-top: 18px; font-size: 46px; font-weight: 400; color: var(--text-sub); letter-spacing: .04em; }
 </style>
 </head>
 <body>
 
 <div class="grid">
 
-  <!-- 1: 無料PDF（左上にアイコン＋名乗り） -->
-  <div class="btn">
-    <div class="who">
-      <img src="../assets/icon-480.jpg" alt="">
-      <div class="name">50代からのAI相棒｜ひろき</div>
-    </div>
-    <span class="num">1</span>
-    <div class="icon">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/></svg>
-    </div>
-    <div class="label">無料PDF</div>
-    <div class="sub">最初にやる5つ</div>
+  <!-- 1 左上: Instagram（公式グラデーショングリフ・Meta Brand Resource Center） -->
+  <div class="cell">
+    <div class="logo"><img src="logos/Instagram_Glyph_Gradient.png" alt="Instagram"></div>
+    <div class="label">Instagram</div>
   </div>
 
-  <!-- 2: ジャービスの動画 -->
-  <div class="btn">
-    <span class="num">2</span>
-    <div class="icon">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M10 8.5v7l5.5-3.5z"/></svg>
-    </div>
-    <div class="label">ジャービスの動画</div>
-    <div class="sub">Instagram</div>
+  <!-- 2 右上: TikTok（公式アイコン・TikTok for Developers Logo Pack） -->
+  <div class="cell">
+    <div class="logo"><img src="logos/TikTok_Icon_Black_Circle.png" alt="TikTok"></div>
+    <div class="label">TikTok</div>
+    <div class="sub">準備中</div>
   </div>
 
-  <!-- 3: どうやって作った？ -->
-  <div class="btn">
-    <span class="num">3</span>
-    <div class="icon">
-      <svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6.5 6.5 0 0 0-4 11.6c.7.6 1 1.4 1 2.4h6c0-1 .3-1.8 1-2.4A6.5 6.5 0 0 0 12 3z"/></svg>
-    </div>
-    <div class="label">どうやって作った？</div>
-    <div class="sub">くわしくはこちら</div>
+  <!-- 3 左下: note（公式ワードマーク・note Visual Identity） -->
+  <div class="cell">
+    <div class="logo"><img class="note" src="logos/note_logo.svg" alt="note"></div>
+    <div class="label">note</div>
+    <div class="sub">準備中</div>
   </div>
 
-  <!-- 4: 質問する -->
-  <div class="btn">
-    <span class="num">4</span>
-    <div class="icon">
-      <svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H8l-4.5 3V12a8 8 0 0 1 8-8h1.5a8 8 0 0 1 8 8z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/></svg>
+  <!-- 4 右下: 質問する（吹き出しの線画・青） -->
+  <div class="cell">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H8l-4.5 3V12a8 8 0 0 1 8-8h1.5a8 8 0 0 1 8 8z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/></svg>
     </div>
     <div class="label">質問する</div>
-    <div class="sub">そのまま送って<b>OK</b></div>
+    <div class="sub">そのまま送ってOK</div>
   </div>
 
 </div>

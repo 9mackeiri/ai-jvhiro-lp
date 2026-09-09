@@ -61,7 +61,7 @@ if ! "$CHROME" --headless=new --disable-gpu --hide-scrollbars --force-device-sca
   exit 1
 fi
 
-# サイズ検証・PNG最適化（256色に減色して1MB以下に収める）・プレビュー作成
+# サイズ検証・PNG最適化（1MB以下に収める）・プレビュー作成
 # 検証に通るまで既存の成果物（$OUT）には触らない
 mkdir -p docs/screenshots
 python3 - "$RAW" "$CAND" "$PREVIEW" <<'EOF'
@@ -71,8 +71,12 @@ raw, out, preview = sys.argv[1:4]
 im = Image.open(raw).convert("RGB")
 if im.size != (2500, 1686):
     sys.exit(f"サイズが想定と違います: {im.size}（2500x1686 が必要）")
-im.quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).save(out, optimize=True)
+# まずフルカラーで保存し、1MB を超えるときだけ 256 色に減色する（ロゴのグラデーションを守るため）
+im.save(out, optimize=True)
 size = os.path.getsize(out)
+if size > 1_000_000:
+    im.quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.FLOYDSTEINBERG).save(out, optimize=True)
+    size = os.path.getsize(out)
 if size > 1_000_000:
     sys.exit(f"1MB を超えました: {size} bytes")
 im.resize((390, round(1686 * 390 / 2500)), Image.LANCZOS).save(preview, optimize=True)
