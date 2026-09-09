@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>50代からのAI相棒｜ひろき（@ai_jvhiro）</title>
+<meta name="description" content="50代・非エンジニアでも、「声で売上を答えてくれる相棒」は作れた。プログラミング経験ゼロの会社員が、半年でここまで来た記録を、ありのまま発信しています。LINE登録で「50代がAIを始めるときに最初にやる5つ」（PDF）をお届けします。">
+
+<!-- OGP（SNSでリンクを貼ったときの見出し・説明・画像） -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="50代からのAI相棒｜ひろき">
+<meta property="og:title" content="50代からのAI相棒｜ひろき（@ai_jvhiro）">
+<meta property="og:description" content="50代・非エンジニアでも、「声で売上を答えてくれる相棒」は作れた。半年でここまで来た記録を、ありのまま発信しています。LINE登録で「最初にやる5つ」（PDF）をお届け。">
+<meta property="og:url" content="https://9mackeiri.github.io/ai-jvhiro-lp/">
+<meta property="og:image" content="https://9mackeiri.github.io/ai-jvhiro-lp/assets/ogp.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="50代からのAI相棒｜ひろき（@ai_jvhiro）">
+<meta name="twitter:description" content="50代・非エンジニアでも、「声で売上を答えてくれる相棒」は作れた。半年でここまで来た記録を、ありのまま発信しています。">
+<meta name="twitter:image" content="https://9mackeiri.github.io/ai-jvhiro-lp/assets/ogp.jpg">
+<link rel="canonical" href="https://9mackeiri.github.io/ai-jvhiro-lp/">
+<link rel="icon" type="image/jpeg" href="assets/icon-480.jpg">
+<link rel="apple-touch-icon" href="assets/icon-480.jpg">
+<meta name="theme-color" content="#ffffff">
+
+<style>
+  /* ===== 配色・基本設定（ここを変えると全体の色が変わります） ===== */
+  :root {
+    --text: #1f2937;        /* 本文の文字色（濃いグレー） */
+    --text-sub: #4b5563;    /* 補足の文字色 */
+    --heading: #0f172a;     /* 見出しの文字色 */
+    --accent: #0284c7;      /* 差し色（青〜シアン） */
+    --accent-soft: #e0f2fe; /* 差し色の薄い背景 */
+    --bg: #ffffff;
+    --bg-alt: #f8fafc;      /* 交互に使う薄いグレー背景 */
+    --line: #e2e8f0;
+    --line-green: #06c755;  /* LINE公式のブランド色 */
+    --line-green-dark: #05b04c;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", "Meiryo", system-ui, -apple-system, sans-serif;
+    font-size: 18px;        /* 本文サイズ（18px以上） */
+    line-height: 1.9;
+    letter-spacing: 0.02em;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { max-width: 100%; height: auto; display: block; }
+  a { color: var(--accent); }
+  p { margin: 0 0 1.1em; }
+  h1, h2, h3 { color: var(--heading); line-height: 1.5; margin: 0 0 0.8em; font-weight: 700; }
+  h1 { font-size: 1.7rem; }
+  h2 { font-size: 1.45rem; }
+  h3 { font-size: 1.15rem; }
+
+  .wrap { width: 100%; max-width: 680px; margin: 0 auto; padding: 0 20px; }
+  section { padding: 56px 0; }
+  section.alt { background: var(--bg-alt); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+  /* 見出しの下に青い短い線 */
+  .sec-title { position: relative; padding-bottom: 12px; margin-bottom: 1.2em; }
+  .sec-title::after {
+    content: ""; position: absolute; left: 0; bottom: 0;
+    width: 48px; height: 4px; border-radius: 2px; background: var(--accent);
+  }
+
+  /* ===== ファーストビュー ===== */
+  .hero {
+    padding: 44px 0 52px;
+    background: linear-gradient(180deg, var(--accent-soft) 0%, #ffffff 100%);
+  }
+  .hero .wrap { text-align: center; }
+  .hero h1 { font-size: 1.6rem; margin: 22px 0 18px; }
+  .hero h1 .em { color: var(--accent); }
+  .hero .lead { font-size: 1.05rem; color: var(--text-sub); margin-bottom: 26px; }
+
+  /* 丸いアイコン */
+  .avatar {
+    width: 140px; height: 140px; border-radius: 50%; object-fit: cover;
+    margin: 0 auto; border: 4px solid #fff; box-shadow: 0 4px 16px rgba(2,132,199,.18);
+  }
+  .avatar.small { width: 120px; height: 120px; }
+
+  /* ===== LINEボタン ===== */
+  .btn-line {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; max-width: 520px; margin: 0 auto;
+    min-height: 64px; padding: 16px 22px;
+    background: var(--line-green); color: #fff !important;
+    font-size: 1.1rem; font-weight: 700; line-height: 1.4; text-decoration: none;
+    border-radius: 999px; box-shadow: 0 6px 18px rgba(6,199,85,.32);
+    transition: background .15s, transform .15s;
+  }
+  .btn-line:hover, .btn-line:focus-visible { background: var(--line-green-dark); transform: translateY(-1px); }
+  .btn-line:active { transform: translateY(1px); }
+  .btn-line svg { width: 30px; height: 30px; flex: 0 0 30px; }
+  .btn-note { text-align: center; font-size: 0.9rem; color: var(--text-sub); margin: 10px 0 0; }
+  .cta-block { margin: 30px 0 0; }
+
+  /* ===== 会話風の吹き出し ===== */
+  .talk { margin: 18px 0 22px; }
+  .bubble {
+    display: inline-block; max-width: 100%;
+    padding: 12px 20px; border-radius: 18px; margin: 6px 0;
+    font-weight: 700; color: var(--heading);
+  }
+  .bubble.me { background: #fff; border: 2px solid var(--line); }
+  .bubble.ai { background: var(--accent-soft); color: var(--accent); }
+
+  /* ===== 箇条書き ===== */
+  ul.list { list-style: none; padding: 0; margin: 0 0 1.2em; }
+  ul.list li { position: relative; padding-left: 1.4em; margin-bottom: 0.9em; }
+  ul.list li::before {
+    content: ""; position: absolute; left: 0; top: 0.75em;
+    width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+  }
+  ul.list.ng li::before { background: #cbd5e1; }
+  ul.list .arrow { color: var(--accent); font-weight: 700; }
+
+  ol.steps { list-style: none; counter-reset: n; padding: 0; margin: 0 0 1.4em; }
+  ol.steps li {
+    counter-increment: n; position: relative;
+    padding: 14px 16px 14px 62px; margin-bottom: 10px;
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    font-weight: 700; color: var(--heading);
+  }
+  ol.steps li::before {
+    content: counter(n); position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ===== 特典カード ===== */
+  .gift-card {
+    background: #fff; border: 2px solid var(--accent); border-radius: var(--radius);
+    padding: 22px 20px; margin-bottom: 1.4em;
+  }
+  .gift-card .tag {
+    display: inline-block; background: var(--accent); color: #fff;
+    font-size: 0.85rem; font-weight: 700; padding: 3px 12px; border-radius: 999px; margin-bottom: 10px;
+  }
+  .gift-card h3 { margin-bottom: 0.4em; }
+
+  .quote-lines { margin: 0 0 1.2em; }
+  .quote-lines p { margin: 0 0 0.4em; font-weight: 700; color: var(--heading); }
+  .note { font-size: 0.95rem; color: var(--text-sub); }
+  .emph { font-weight: 700; color: var(--heading); }
+
+  /* ===== 発信している人 ===== */
+  .profile { text-align: center; }
+  .profile .name { font-weight: 700; font-size: 1.1rem; color: var(--heading); margin: 16px 0 6px; }
+  .profile .ig { margin-bottom: 14px; }
+  .profile .ig a { font-weight: 700; text-decoration: none; border-bottom: 2px solid var(--accent-soft); }
+
+  /* ===== フッター ===== */
+  footer { padding: 32px 0 48px; text-align: center; font-size: 0.9rem; color: var(--text-sub); border-top: 1px solid var(--line); }
+  footer p { margin: 0 0 6px; }
+
+  /* ===== PC幅での調整 ===== */
+  @media (min-width: 700px) {
+    body { font-size: 19px; }
+    h1 { font-size: 2.1rem; }
+    .hero h1 { font-size: 2.15rem; }
+    h2 { font-size: 1.65rem; }
+    section { padding: 72px 0; }
+    .avatar { width: 160px; height: 160px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     ファーストビュー
+     ============================================================ -->
+<header class="hero">
+  <div class="wrap">
+    <img class="avatar" src="assets/icon-480.jpg" alt="ひろきのアイコン" width="140" height="140">
+    <h1>50代・非エンジニアでも、<br>「<span class="em">声で売上を答えてくれる相棒</span>」は作れた。</h1>
+    <p class="lead">プログラミング経験ゼロの会社員が、半年でここまで来た記録を、ありのまま発信しています。</p>
+
+    <!-- LINEボタン①（ファーストビュー） -->
+    <a class="btn-line" href="https://lin.ee/yuBrECZ5" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="#fff"><path d="M12 2C6.48 2 2 5.64 2 10.13c0 4.03 3.58 7.41 8.42 8.05.33.07.77.22.89.5.1.26.07.66.03.92l-.14.86c-.04.26-.2 1 .88.55 1.08-.45 5.83-3.43 7.95-5.88C21.5 13.5 22 11.9 22 10.13 22 5.64 17.52 2 12 2zM8.4 12.8H6.2a.5.5 0 0 1-.5-.5V8.7a.5.5 0 1 1 1 0v3.1h1.7a.5.5 0 1 1 0 1zm1.9-.5a.5.5 0 1 1-1 0V8.7a.5.5 0 1 1 1 0v3.6zm4.3 0a.5.5 0 0 1-.9.3l-1.9-2.5v2.2a.5.5 0 1 1-1 0V8.7a.5.5 0 0 1 .9-.3l1.9 2.5V8.7a.5.5 0 1 1 1 0v3.6zm3.6-2.3a.5.5 0 1 1 0 1h-1.7v.8h1.7a.5.5 0 1 1 0 1h-2.2a.5.5 0 0 1-.5-.5V8.7a.5.5 0 0 1 .5-.5h2.2a.5.5 0 1 1 0 1h-1.7v.8h1.7z"/></svg>
+      <span>LINEで「最初にやる5つ」を受け取る</span>
+    </a>
+    <p class="btn-note">登録は無料です。商品の販売はありません。</p>
+  </div>
+</header>
+
+<main>
+
+<!-- ============================================================
+     これは何？
+     ============================================================ -->
+<section id="what">
+  <div class="wrap">
+    <h2 class="sec-title">これは何？</h2>
+    <p>毎朝、こう聞きます。</p>
+    <div class="talk">
+      <div class="bubble me">「今日の売上は？」</div>
+    </div>
+    <p>すると、自分で作った相棒「ジャービス」が、会社のExcelを読んで、声で答えてくれます。</p>
+    <p class="emph">売上、在庫、取引先の傾向。聞けば返ってくる。</p>
+    <p>作ったのは、地方の小さな会社で経理と総務をやっている50代の会社員です。</p>
+    <p>コードは書けません。半年前まで、AIも触ったことがありませんでした。</p>
+  </div>
+</section>
+
+<!-- ============================================================
+     ジャービスにできること
+     ============================================================ -->
+<section id="can" class="alt">
+  <div class="wrap">
+    <h2 class="sec-title">ジャービスにできること</h2>
+    <ul class="list">
+      <li>「今月は先月と比べてどう？」<span class="arrow">→</span> 本物の売上データから、声で答える</li>
+      <li>「在庫はあといくつ？」<span class="arrow">→</span> 在庫表を読んで、あと何か月もつかまで答える</li>
+      <li>「一番買ってくれてるのは？」<span class="arrow">→</span> 取引先を集計して答える</li>
+      <li>雑談も、調べものも、予定の記憶も</li>
+    </ul>
+    <p class="emph">全部、自分の会社の本物のデータで動いています。</p>
+    <p class="note">（動画では、製品名と取引先名は伏せています）</p>
+  </div>
+</section>
+
+<!-- ============================================================
+     なぜ発信するのか
+     ============================================================ -->
+<section id="why">
+  <div class="wrap">
+    <h2 class="sec-title">なぜ発信するのか</h2>
+    <div class="quote-lines">
+      <p>「今からじゃ遅い」</p>
+      <p>「文系には無理」</p>
+      <p>「若い人のもの」</p>
+    </div>
+    <p>全部、半年前の自分が思っていたことです。</p>
+    <p>でも、実際にやってみたら違いました。</p>
+    <p class="emph">必要だったのは才能ではなく、「最初の一歩の踏み方」だけでした。</p>
+    <p>同じように思っている同年代の人に、<br>「こうやって始めたら、ここまで来た」を、そのまま見せたくて発信しています。</p>
+  </div>
+</section>
+
+<!-- ============================================================
+     LINE登録の特典
+     ============================================================ -->
+<section id="gift" class="alt">
+  <div class="wrap">
+    <h2 class="sec-title">LINE登録の特典</h2>
+    <div class="gift-card">
+      <span class="tag">登録特典</span>
+      <h3>「50代がAIを始めるときに最初にやる5つ」（PDF）</h3>
+      <p>半年間で一番遠回りしたのは、最初の1か月でした。</p>
+      <p>あのとき知っていれば、と思ったことを5つにまとめています。</p>
+      <ol class="steps">
+        <li>何から触ればいいのか（道具の選び方）</li>
+        <li>最初の1週間でやること</li>
+        <li>「自分の仕事」に落とすコツ</li>
+        <li>つまずいたときの聞き方</li>
+        <li>続けるための小さな仕組み</li>
+      </ol>
+      <p>登録後、LINEですぐお届けします。</p>
+    </div>
+
+    <!-- LINEボタン②（ページ中ほど） -->
+    <div class="cta-block">
+      <a class="btn-line" href="https://lin.ee/yuBrECZ5" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="#fff"><path d="M12 2C6.48 2 2 5.64 2 10.13c0 4.03 3.58 7.41 8.42 8.05.33.07.77.22.89.5.1.26.07.66.03.92l-.14.86c-.04.26-.2 1 .88.55 1.08-.45 5.83-3.43 7.95-5.88C21.5 13.5 22 11.9 22 10.13 22 5.64 17.52 2 12 2zM8.4 12.8H6.2a.5.5 0 0 1-.5-.5V8.7a.5.5 0 1 1 1 0v3.1h1.7a.5.5 0 1 1 0 1zm1.9-.5a.5.5 0 1 1-1 0V8.7a.5.5 0 1 1 1 0v3.6zm4.3 0a.5.5 0 0 1-.9.3l-1.9-2.5v2.2a.5.5 0 1 1-1 0V8.7a.5.5 0 0 1 .9-.3l1.9 2.5V8.7a.5.5 0 1 1 1 0v3.6zm3.6-2.3a.5.5 0 1 1 0 1h-1.7v.8h1.7a.5.5 0 1 1 0 1h-2.2a.5.5 0 0 1-.5-.5V8.7a.5.5 0 0 1 .5-.5h2.2a.5.5 0 1 1 0 1h-1.7v.8h1.7z"/></svg>
+        <span>LINEで受け取る</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     こんな人に／こんな人には向きません
+     ============================================================ -->
+<section id="who">
+  <div class="wrap">
+    <h2 class="sec-title">こんな人に</h2>
+    <ul class="list">
+      <li>50代前後で、AIに興味はあるが何から始めればいいか分からない</li>
+      <li>会社で事務や管理の仕事をしていて、日々の作業を減らしたい</li>
+      <li>プログラミングは無理だと思っている</li>
+    </ul>
+    <h3>こんな人には向きません</h3>
+    <ul class="list ng">
+      <li>「AIで月○万円」のような話を探している</li>
+      <li>短期間で結果だけ欲しい</li>
+    </ul>
+    <p>ここでは「稼ぎ方」は扱いません。自分の仕事が楽になる、自分でも作れる、その実例だけです。</p>
+  </div>
+</section>
+
+<!-- ============================================================
+     発信している人
+     ============================================================ -->
+<section id="profile" class="alt">
+  <div class="wrap profile">
+    <h2 class="sec-title" style="text-align:left">発信している人</h2>
+    <img class="avatar small" src="assets/icon-480.jpg" alt="ひろきのアイコン" width="120" height="120">
+    <p class="name">ひろき｜50代・非エンジニア・小さな会社の経理総務</p>
+    <p class="ig">Instagram：<a href="https://www.instagram.com/ai_jvhiro/" target="_blank" rel="noopener noreferrer">@ai_jvhiro</a></p>
+    <p>半年前にAIを始め、業務ツールを自分で作って会社で使っています。相棒「ジャービス」の日々を毎日投稿中。</p>
+
+    <!-- LINEボタン③（最後） -->
+    <div class="cta-block">
+      <a class="btn-line" href="https://lin.ee/yuBrECZ5" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="#fff"><path d="M12 2C6.48 2 2 5.64 2 10.13c0 4.03 3.58 7.41 8.42 8.05.33.07.77.22.89.5.1.26.07.66.03.92l-.14.86c-.04.26-.2 1 .88.55 1.08-.45 5.83-3.43 7.95-5.88C21.5 13.5 22 11.9 22 10.13 22 5.64 17.52 2 12 2zM8.4 12.8H6.2a.5.5 0 0 1-.5-.5V8.7a.5.5 0 1 1 1 0v3.1h1.7a.5.5 0 1 1 0 1zm1.9-.5a.5.5 0 1 1-1 0V8.7a.5.5 0 1 1 1 0v3.6zm4.3 0a.5.5 0 0 1-.9.3l-1.9-2.5v2.2a.5.5 0 1 1-1 0V8.7a.5.5 0 0 1 .9-.3l1.9 2.5V8.7a.5.5 0 1 1 1 0v3.6zm3.6-2.3a.5.5 0 1 1 0 1h-1.7v.8h1.7a.5.5 0 1 1 0 1h-2.2a.5.5 0 0 1-.5-.5V8.7a.5.5 0 0 1 .5-.5h2.2a.5.5 0 1 1 0 1h-1.7v.8h1.7z"/></svg>
+        <span>LINEで「最初にやる5つ」を受け取る</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============================================================
+     フッター
+     ============================================================ -->
+<footer>
+  <div class="wrap">
+    <p>© 2026 ひろき（@ai_jvhiro）</p>
+    <p>※このページで商品の販売は行っていません。</p>
+  </div>
+</footer>
+
+</body>
+</html>
