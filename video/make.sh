@@ -3,7 +3,8 @@
 #
 # 使い方:
 #   cd ~/dev/ai-jvhiro-lp
-#   zsh video/make.sh <入力ファイル名> [--mode highlight|full] [--title "見出し"] [--crop left|center|right] [--skip-transcribe] [--no-title]
+#   zsh video/make.sh <入力ファイル名> [--mode highlight|full] [--title "見出し"] [--title-seconds 2] [--crop left|center|right] [--skip-transcribe] [--no-title]
+#   見出しが出ている間（--title-seconds 秒、既定 2）は q（質問）のテロップを出さず、消えた直後から出す
 #
 #   入力ファイル名は iCloud の「Cursor/インスタ投稿/動画/入力」に置いたファイル名（例: IMG_8930.MOV）
 #
@@ -50,12 +51,13 @@ for arg in "$@"; do [ "$arg" != "--skip-transcribe" ] && ORIG_OPTS+=("$arg"); do
 case "$INPUT_NAME" in
   */*|.*|"") echo "入力ファイル名はフォルダを含まない名前だけを指定してください（例: IMG_8930.MOV）" >&2; exit 2 ;;
 esac
-TITLE="50代・非エンジニアが作ったAI相棒"
-CROP="center"; SKIP_TRANSCRIBE=0; NO_TITLE=0; MODE="highlight"
+TITLE="50代・非エンジニア|が作ったAI相棒"   # 「|」は改行位置（表示されない）
+CROP="center"; SKIP_TRANSCRIBE=0; NO_TITLE=0; MODE="highlight"; TITLE_SECONDS="2"
 while [ $# -gt 0 ]; do
   case "$1" in
     --mode) [ $# -ge 2 ] || usage; MODE="$2"; shift 2 ;;
     --title) [ $# -ge 2 ] || usage; TITLE="$2"; shift 2 ;;
+    --title-seconds) [ $# -ge 2 ] || usage; TITLE_SECONDS="$2"; shift 2 ;;
     --crop) [ $# -ge 2 ] || usage; CROP="$2"; shift 2 ;;
     --skip-transcribe) SKIP_TRANSCRIBE=1; shift ;;
     --no-title) NO_TITLE=1; shift ;;
@@ -64,6 +66,7 @@ while [ $# -gt 0 ]; do
 done
 case "$CROP" in left|center|right) ;; *) echo "--crop は left / center / right のどれか" >&2; exit 2 ;; esac
 case "$MODE" in highlight|full) ;; *) echo "--mode は highlight / full のどちらか" >&2; exit 2 ;; esac
+[[ "$TITLE_SECONDS" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "--title-seconds は秒数（例: 2 や 1.5）を指定してください" >&2; exit 2; }
 
 INPUT="$IN_DIR/$INPUT_NAME"
 NAME="${INPUT_NAME%.*}"
@@ -137,7 +140,7 @@ T1=$(date +%s)
 
 # ---------- 2. テロップ・見出しの画像 ----------
 DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$INPUT")
-TITLE_ARGS=(--title "$TITLE"); [ "$NO_TITLE" -eq 1 ] && TITLE_ARGS+=(--no-title)
+TITLE_ARGS=(--title "$TITLE" --title-seconds "$TITLE_SECONDS"); [ "$NO_TITLE" -eq 1 ] && TITLE_ARGS+=(--no-title)
 if [ "$MODE" = "highlight" ]; then
   if [ ! -s "$HL" ]; then
     [ -s "$SRT" ] || { echo "字幕（SRT）がありません: $SRT — --skip-transcribe を外して文字起こしから実行してください" >&2; exit 1; }

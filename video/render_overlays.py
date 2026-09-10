@@ -21,6 +21,7 @@ highlight.txt（要点モード）の書き方: 1 行 1 テロップ、「開始
     9.8-18.4 | a | 乳酸菌サプリ24個・病院から1件
 """
 import argparse
+import math
 import os
 import re
 import sys
@@ -57,7 +58,7 @@ N_OUTLINE_W = 10
 TITLE_FONT_SIZE = 76
 TITLE_MAX_WIDTH = 900        # 見出しの最大幅（px）。「|」で手動改行もできる
 TITLE_CENTER_RATIO = 0.22
-TITLE_SECONDS = 2.0
+TITLE_SECONDS = 2.0          # 見出しを出す秒数の既定（--title-seconds で変更可）。この間 q は出さない
 TITLE_OUTLINE_W = 6
 TITLE_SUB_FONT_SIZE = 44
 TITLE_SUB_COLOR = (190, 240, 255, 255)
@@ -269,6 +270,7 @@ def main():
     ap.add_argument("--title", default="")
     ap.add_argument("--title-sub", default="#ジャービス")
     ap.add_argument("--no-title", action="store_true")
+    ap.add_argument("--title-seconds", type=float, default=TITLE_SECONDS, help="見出しを出す秒数（既定 2）")
     a = ap.parse_args()
 
     os.makedirs(a.out_dir, exist_ok=True)
@@ -288,7 +290,12 @@ def main():
     events = [(s, min(e, a.duration), k, t) for s, e, k, t in events if s < a.duration]
 
     show_title = bool(a.title) and not a.no_title
-    title_end = min(TITLE_SECONDS, a.duration) if show_title else 0.0
+    if not math.isfinite(a.title_seconds) or a.title_seconds < 0:
+        sys.exit("--title-seconds は 0 以上の秒数を指定してください")
+    title_end = min(a.title_seconds, a.duration) if show_title else 0.0
+    # 見出しが出ている間は q（質問）を出さない。開始を見出しの終了直後に遅らせる（終了時刻はそのまま）
+    events = [(max(s, title_end) if k == "q" else s, e, k, t) for s, e, k, t in events]
+    events = [ev for ev in events if ev[1] > ev[0]]
 
     marks = {0.0, a.duration}
     if show_title:
