@@ -3,3 +3,10 @@
 docs/screenshots/
 # PDF用フォント（約6MB・pdf/build.sh が自動取得する）
 pdf/fonts/
+# 動画用フォント（TTF。video/make.sh が pdf/fonts の woff から自動生成）
+video/fonts/
+# 動画・音声の本体はコミットしない
+*.mov
+*.MOV
+*.mp4
+*.wav
