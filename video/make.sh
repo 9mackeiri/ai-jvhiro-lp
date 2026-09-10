@@ -3,20 +3,24 @@
 #
 # 使い方:
 #   cd ~/dev/ai-jvhiro-lp
-#   zsh video/make.sh <入力ファイル名> [--title "見出し"] [--crop left|center|right] [--skip-transcribe] [--no-title]
+#   zsh video/make.sh <入力ファイル名> [--mode highlight|full] [--title "見出し"] [--crop left|center|right] [--skip-transcribe] [--no-title]
 #
 #   入力ファイル名は iCloud の「Cursor/インスタ投稿/動画/入力」に置いたファイル名（例: IMG_8930.MOV）
 #
 # 流れ:
 #   1. 音声を取り出し、whisper.cpp（Mac 内・外部送信なし）で日本語の字幕 SRT を作る
 #      → 「動画/字幕/<名前>.srt」に保存（既にあれば .bak-日時 を残してから上書き）
-#   2. SRT と見出しから字幕画像を作る（video/render_overlays.py）
+#   2. テロップの画像を作る（video/render_overlays.py）
+#      --mode highlight（既定）: 「動画/字幕/<名前>.highlight.txt」の要点テロップ（質問・答えの要点・数字）だけを出す
+#        このファイルが無ければ SRT から下書きを作って保存し、そこで止まる（直してから再実行）
+#      --mode full: SRT の全文字幕を出す
 #   3. 9:16 に切り出し → 字幕を重ねる → 音量を標準化 → H.264/AAC で書き出し
 #      → 「動画/出力/<名前>_reel.mp4」（前回の出力は「出力/前回/」に 1 世代だけ残す）
 #      確認用の静止画3枚を「動画/出力/確認用/」に置く
 #
-# 字幕を直すとき: 字幕/<名前>.srt を編集して、--skip-transcribe を付けて同じコマンドを実行する
-#   SRT の行の先頭に「J:」を付けると、その字幕は薄いシアン（ジャービス）になる
+# テロップを直すとき: 字幕/<名前>.highlight.txt（要点）か 字幕/<名前>.srt（全文）を編集して、
+#   --skip-transcribe を付けて同じコマンドを実行する
+#   SRT の行の先頭に「J:」を付けると、その字幕は薄いシアン（ジャービス）になる（全文モード）
 #
 # 必要なもの: ffmpeg, whisper-cli（brew install ffmpeg whisper-cpp）, python3 + Pillow
 # 文字起こしモデル ggml-large-v3-turbo.bin（約1.6GB）は無ければ ~/.cache/whisper-cpp/ に自動取得
@@ -41,13 +45,16 @@ WHISPER_PROMPT="ジャービス、売上、在庫、取引先、Excel、AI、相
 usage() { sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
 [ $# -ge 1 ] || usage
 INPUT_NAME="$1"; shift
+ORIG_OPTS=()   # 下書き後の再実行案内に引き継ぐオプション（--skip-transcribe 以外）
+for arg in "$@"; do [ "$arg" != "--skip-transcribe" ] && ORIG_OPTS+=("$arg"); done
 case "$INPUT_NAME" in
   */*|.*|"") echo "入力ファイル名はフォルダを含まない名前だけを指定してください（例: IMG_8930.MOV）" >&2; exit 2 ;;
 esac
 TITLE="50代・非エンジニアが作ったAI相棒"
-CROP="center"; SKIP_TRANSCRIBE=0; NO_TITLE=0
+CROP="center"; SKIP_TRANSCRIBE=0; NO_TITLE=0; MODE="highlight"
 while [ $# -gt 0 ]; do
   case "$1" in
+    --mode) [ $# -ge 2 ] || usage; MODE="$2"; shift 2 ;;
     --title) [ $# -ge 2 ] || usage; TITLE="$2"; shift 2 ;;
     --crop) [ $# -ge 2 ] || usage; CROP="$2"; shift 2 ;;
     --skip-transcribe) SKIP_TRANSCRIBE=1; shift ;;
@@ -56,10 +63,12 @@ while [ $# -gt 0 ]; do
   esac
 done
 case "$CROP" in left|center|right) ;; *) echo "--crop は left / center / right のどれか" >&2; exit 2 ;; esac
+case "$MODE" in highlight|full) ;; *) echo "--mode は highlight / full のどちらか" >&2; exit 2 ;; esac
 
 INPUT="$IN_DIR/$INPUT_NAME"
 NAME="${INPUT_NAME%.*}"
 SRT="$SRT_DIR/$NAME.srt"
+HL="$SRT_DIR/$NAME.highlight.txt"
 OUT="$OUT_DIR/${NAME}_reel.mp4"
 
 # ---------- 事前チェック ----------
@@ -126,12 +135,29 @@ else
 fi
 T1=$(date +%s)
 
-# ---------- 2. 字幕・見出しの画像 ----------
-echo "[2/3] 字幕と見出しの画像を作成..."
+# ---------- 2. テロップ・見出しの画像 ----------
 DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$INPUT")
 TITLE_ARGS=(--title "$TITLE"); [ "$NO_TITLE" -eq 1 ] && TITLE_ARGS+=(--no-title)
-python3 "$REPO/video/render_overlays.py" --srt "$SRT" --duration "$DURATION" \
-  --out-dir "$WORK/ov" --font-bold "$FONT_BOLD" "${TITLE_ARGS[@]}"
+if [ "$MODE" = "highlight" ]; then
+  if [ ! -s "$HL" ]; then
+    [ -s "$SRT" ] || { echo "字幕（SRT）がありません: $SRT — --skip-transcribe を外して文字起こしから実行してください" >&2; exit 1; }
+    python3 "$REPO/video/highlight_draft.py" "$SRT" "$HL"
+    RERUN="zsh video/make.sh \"$INPUT_NAME\" --skip-transcribe"
+    for o in "${ORIG_OPTS[@]}"; do RERUN="$RERUN \"$o\""; done
+    echo
+    echo "要点テロップの下書きを作りました。文を短く直してから、次のコマンドで書き出してください:"
+    echo "  $RERUN"
+    echo "  （全文字幕にしたいときは --mode full）"
+    exit 0
+  fi
+  echo "[2/3] 要点テロップと見出しの画像を作成（$HL）..."
+  python3 "$REPO/video/render_overlays.py" --highlight "$HL" --duration "$DURATION" \
+    --out-dir "$WORK/ov" --font-bold "$FONT_BOLD" "${TITLE_ARGS[@]}"
+else
+  echo "[2/3] 全文字幕と見出しの画像を作成（$SRT）..."
+  python3 "$REPO/video/render_overlays.py" --srt "$SRT" --duration "$DURATION" \
+    --out-dir "$WORK/ov" --font-bold "$FONT_BOLD" "${TITLE_ARGS[@]}"
+fi
 
 # ---------- 3. 切り出し・合成・書き出し ----------
 echo "[3/3] 9:16 に切り出して字幕を重ね、音量を整えて書き出し（--crop $CROP）..."
@@ -181,5 +207,6 @@ done
 echo
 echo "完了: $OUT ($(du -h "$OUT" | cut -f1))"
 echo "字幕:  $SRT"
+[ "$MODE" = "highlight" ] && echo "要点:  $HL"
 echo "静止画: $STILL_DIR/${NAME}_{冒頭,中盤,終盤}.jpg"
 echo "所要時間: 文字起こし $((T1-T0)) 秒 / 書き出し $((T2-T1)) 秒 / 合計 $((T2-T0)) 秒"
