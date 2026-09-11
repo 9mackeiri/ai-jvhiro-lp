@@ -137,28 +137,47 @@ def parse_highlight(path):
 
 
 # ---------- 文字の折り返し ----------
-KINSOKU_TAIL = "、。！？!?」）)"
+KINSOKU_TAIL = "、。！？!?」）)"          # 行頭に来てはいけない文字
+BREAK_AFTER = "、。！？!?」）)・／/ "      # ここの直後なら折り返してよい（読点・中黒・スペース）
+NUM_UNIT_RE = re.compile(r"[+\-−＋]?[\d,\.]+\s*(?:%|％|円|個|件|万円|倍|人|日|か月|ヶ月|分|秒|時間|回|kg|g|ml|L)?")
+
+
+def _protected_spans(text):
+    """途中で折ってはいけない範囲（数字＋単位）を [(start, end)] で返す。"""
+    return [(m.start(), m.end()) for m in NUM_UNIT_RE.finditer(text) if re.search(r"\d", m.group(0))]
+
+
+def _inside_protected(pos, spans):
+    return any(a < pos < b for a, b in spans)
 
 
 def wrap_px(text, font, max_width):
-    """描画幅（px）で折り返す。句読点の後で切れるならそこで切り、行頭に句読点を置かない。「|」は手動改行。"""
+    """描画幅（px）で折り返す。
+    優先順位: (1) 読点・中黒・スペースの直後 → (2) 数字＋単位の途中でない位置。行頭に句読点は置かない。「|」は手動改行。"""
     text = text.replace("|", "\n")
     out = []
     for para in text.split("\n"):
         para = para.strip()
         while para and font.getlength(para) > max_width:
-            # max_width に収まる最大の文字数を探す
-            cut = 1
-            while cut < len(para) and font.getlength(para[:cut + 1]) <= max_width:
-                cut += 1
-            # 直前 5 文字以内に句読点があればその後ろで切る
-            for k in range(cut, max(cut - 5, 1), -1):
-                if para[k - 1] in KINSOKU_TAIL:
+            spans = _protected_spans(para)
+            # max_width に収まる最大の文字数
+            fit = 1
+            while fit < len(para) and font.getlength(para[:fit + 1]) <= max_width:
+                fit += 1
+            # (1) 収まる範囲で最も後ろにある「折ってよい文字」の直後
+            cut = 0
+            for k in range(fit, 0, -1):
+                if para[k - 1] in BREAK_AFTER and not _inside_protected(k, spans):
                     cut = k
                     break
+            # (2) 無ければ、数字＋単位を割らない最も後ろの位置
+            if cut == 0:
+                cut = fit
+                while cut > 1 and _inside_protected(cut, spans):
+                    cut -= 1
             while cut < len(para) and para[cut] in KINSOKU_TAIL:  # 行頭の句読点を避ける
                 cut += 1
-            out.append(para[:cut])
+            out.append(para[:cut].rstrip())
             para = para[cut:].lstrip()
         if para:
             out.append(para)
