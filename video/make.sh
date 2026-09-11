@@ -17,7 +17,7 @@
 #      --mode full: SRT の全文字幕を出す
 #   3. 9:16 に切り出し → 字幕を重ねる → 音量を標準化 → H.264/AAC で書き出し
 #      → 「動画/出力/<名前>_reel.mp4」（前回の出力は「出力/前回/」に 1 世代だけ残す）
-#      確認用の静止画3枚を「動画/出力/確認用/」に置く
+#      確認用の静止画3枚を「動画/出力/確認用/<名前>/」に置く
 #
 # テロップを直すとき: 字幕/<名前>.highlight.txt（要点）か 字幕/<名前>.srt（全文）を編集して、
 #   --skip-transcribe を付けて同じコマンドを実行する
@@ -32,7 +32,7 @@ cd "$(dirname "$0")/.."   # リポジトリのルートへ
 REPO="$PWD"
 
 BASE="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Cursor/インスタ投稿/動画"
-IN_DIR="$BASE/入力"; SRT_DIR="$BASE/字幕"; OUT_DIR="$BASE/出力"; STILL_DIR="$OUT_DIR/確認用"
+IN_DIR="$BASE/入力"; SRT_DIR="$BASE/字幕"; OUT_DIR="$BASE/出力"; STILL_BASE="$OUT_DIR/確認用"
 MODEL_DIR="$HOME/.cache/whisper-cpp"
 MODEL="$MODEL_DIR/ggml-large-v3-turbo.bin"
 MODEL_URL="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin"
@@ -73,6 +73,7 @@ NAME="${INPUT_NAME%.*}"
 SRT="$SRT_DIR/$NAME.srt"
 HL="$SRT_DIR/$NAME.highlight.txt"
 OUT="$OUT_DIR/${NAME}_reel.mp4"
+STILL_DIR="$STILL_BASE/$NAME"   # 確認用の静止画は動画ごとのサブフォルダに入れる
 
 # ---------- 事前チェック ----------
 for cmd in ffmpeg ffprobe whisper-cli python3 curl; do
