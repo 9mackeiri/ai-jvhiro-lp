@@ -3,7 +3,8 @@
 #
 # 使い方:
 #   cd ~/dev/ai-jvhiro-lp
-#   zsh video/make.sh <入力ファイル名> [--mode highlight|full] [--title "見出し"] [--title-seconds 2] [--crop left|center|right] [--skip-transcribe] [--no-title]
+#   zsh video/make.sh <入力ファイル名> [--mode highlight|full] [--title "見出し"] [--title-seconds 2] [--crop left|center|right] [--end 秒] [--skip-transcribe] [--no-title]
+#   --end 秒: その時刻で動画を終える（末尾 0.5 秒は映像と音声をフェードアウト）。撮り終わりのブレなどを切るのに使う
 #   見出しが出ている間（--title-seconds 秒、既定 2）は q（質問）のテロップを出さず、消えた直後から出す
 #
 #   入力ファイル名は iCloud の「Cursor/インスタ投稿/動画/入力」に置いたファイル名（例: IMG_8930.MOV）
@@ -52,12 +53,13 @@ case "$INPUT_NAME" in
   */*|.*|"") echo "入力ファイル名はフォルダを含まない名前だけを指定してください（例: IMG_8930.MOV）" >&2; exit 2 ;;
 esac
 TITLE="50代・非エンジニア|が作ったAI相棒"   # 「|」は改行位置（表示されない）
-CROP="center"; SKIP_TRANSCRIBE=0; NO_TITLE=0; MODE="highlight"; TITLE_SECONDS="2"
+CROP="center"; SKIP_TRANSCRIBE=0; NO_TITLE=0; MODE="highlight"; TITLE_SECONDS="2"; END=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --mode) [ $# -ge 2 ] || usage; MODE="$2"; shift 2 ;;
     --title) [ $# -ge 2 ] || usage; TITLE="$2"; shift 2 ;;
     --title-seconds) [ $# -ge 2 ] || usage; TITLE_SECONDS="$2"; shift 2 ;;
+    --end) [ $# -ge 2 ] || usage; END="$2"; shift 2 ;;
     --crop) [ $# -ge 2 ] || usage; CROP="$2"; shift 2 ;;
     --skip-transcribe) SKIP_TRANSCRIBE=1; shift ;;
     --no-title) NO_TITLE=1; shift ;;
@@ -67,6 +69,7 @@ done
 case "$CROP" in left|center|right) ;; *) echo "--crop は left / center / right のどれか" >&2; exit 2 ;; esac
 case "$MODE" in highlight|full) ;; *) echo "--mode は highlight / full のどちらか" >&2; exit 2 ;; esac
 [[ "$TITLE_SECONDS" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "--title-seconds は秒数（例: 2 や 1.5）を指定してください" >&2; exit 2; }
+[ -z "$END" ] || [[ "$END" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "--end は秒数（例: 81.2）を指定してください" >&2; exit 2; }
 
 INPUT="$IN_DIR/$INPUT_NAME"
 NAME="${INPUT_NAME%.*}"
@@ -141,6 +144,19 @@ T1=$(date +%s)
 
 # ---------- 2. テロップ・見出しの画像 ----------
 DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$INPUT")
+FADE=0.5
+if [ -n "$END" ]; then
+  python3 -c "import sys; d=float(sys.argv[1]); e=float(sys.argv[2]); f=float(sys.argv[3]); sys.exit(0 if f <= e <= d else 1)" "$DURATION" "$END" "$FADE" \
+    || { echo "--end は ${FADE} 秒以上、動画の長さ（${DURATION} 秒）以下にしてください" >&2; exit 1; }
+  DURATION="$END"
+  FADE_ST=$(python3 -c "print(round(float('$END')-$FADE, 3))")
+  VFADE=",fade=t=out:st=${FADE_ST}:d=${FADE}"
+  AFADE=",afade=t=out:st=${FADE_ST}:d=${FADE}"
+  TRIM_ARGS=(-t "$END")
+  echo "末尾を ${END} 秒で切り、最後の ${FADE} 秒をフェードアウトします"
+else
+  VFADE=""; AFADE=""; TRIM_ARGS=()
+fi
 TITLE_ARGS=(--title "$TITLE" --title-seconds "$TITLE_SECONDS"); [ "$NO_TITLE" -eq 1 ] && TITLE_ARGS+=(--no-title)
 if [ "$MODE" = "highlight" ]; then
   if [ ! -s "$HL" ]; then
@@ -188,10 +204,10 @@ case "$CROP" in
   center) CX="(iw-1080)/2" ;;
   right)  CX="iw-1080" ;;
 esac
-VF="scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920:${CX}:(ih-1920)/2,fps=30,format=yuv420p[base];[1:v]format=rgba[ov];[base][ov]overlay=0:0:eof_action=pass:format=auto,format=yuv420p"
+VF="scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920:${CX}:(ih-1920)/2,fps=30,format=yuv420p[base];[1:v]format=rgba[ov];[base][ov]overlay=0:0:eof_action=pass:format=auto,format=yuv420p${VFADE}"
 ffmpeg -y -v error -stats -i "$INPUT" -f concat -safe 0 -i "$WORK/ov/list.txt" \
   -filter_complex "[0:v]$VF" \
-  -map 0:a:0 -af "$AF" \
+  -map 0:a:0 -af "${AF}${AFADE}" "${TRIM_ARGS[@]}" \
   -c:v libx264 -preset medium -crf 20 -profile:v high -level 4.1 -pix_fmt yuv420p -r 30 \
   -c:a aac -b:a 192k -ar 48000 -ac 2 -movflags +faststart -shortest \
   "$WORK/out.mp4"
