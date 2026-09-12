@@ -161,7 +161,9 @@ TITLE_ARGS=(--title "$TITLE" --title-seconds "$TITLE_SECONDS"); [ "$NO_TITLE" -e
 if [ "$MODE" = "highlight" ]; then
   if [ ! -s "$HL" ]; then
     [ -s "$SRT" ] || { echo "字幕（SRT）がありません: $SRT — --skip-transcribe を外して文字起こしから実行してください" >&2; exit 1; }
-    python3 "$REPO/video/highlight_draft.py" "$SRT" "$HL"
+    DRAFT_ARGS=("$SRT" "$HL" --media "$INPUT")
+    [ -s "$MODEL" ] && DRAFT_ARGS+=(--model "$MODEL")
+    python3 "$REPO/video/highlight_draft.py" "${DRAFT_ARGS[@]}"
     RERUN="zsh video/make.sh \"$INPUT_NAME\" --skip-transcribe"
     for o in "${ORIG_OPTS[@]}"; do RERUN="$RERUN \"$o\""; done
     echo
