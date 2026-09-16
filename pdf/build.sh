@@ -1,12 +1,14 @@
 #!/bin/zsh
-# 登録特典PDFを pdf/index.html から再生成する
+# 登録特典PDFを HTML から再生成する
 #
 # 使い方:
-#   cd ~/dev/ai-jvhiro-lp && zsh pdf/build.sh
+#   cd ~/dev/ai-jvhiro-lp && zsh pdf/build.sh              # 1本目「最初にやる5つ」（pdf/index.html）
+#   cd ~/dev/ai-jvhiro-lp && zsh pdf/build.sh first-step   # 2本目「最初の一歩」（pdf/first-step/index.html）
 #
 # 出力:
-#   assets/pdf/ai-first5-<ランダム8文字>.pdf  （既存のPDFがあればそのファイル名を使う）
-#   iCloud の「Cursor/インスタ投稿」に「50代がAIを始めるときに最初にやる5つ.pdf」としてコピー
+#   1本目: assets/pdf/ai-first5-<ランダム8文字>.pdf     （既存のPDFがあればそのファイル名を使う）
+#   2本目: assets/pdf/ai-first-step-<ランダム8文字>.pdf （同上）
+#   iCloud の「Cursor/インスタ投稿」に日本語名（下記 ICLOUD_NAME）でコピー
 #
 # 必要なもの: Google Chrome（/Applications）、curl、file、python3（macOS標準）
 # フォント (pdf/fonts/*.woff) は無ければ自動で取得する（git管理外・約6MB）
@@ -22,7 +24,19 @@ FONT_REG_URL="https://fonts.gstatic.com/s/notosansjp/v56/-F6jfjtqLzI2JPCgQBnw7HF
 FONT_BOLD_URL="https://fonts.gstatic.com/s/notosansjp/v56/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFPYk75g.woff"
 OUT_DIR="assets/pdf"
 ICLOUD_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Cursor/インスタ投稿"
-ICLOUD_NAME="50代がAIを始めるときに最初にやる5つ.pdf"
+
+# どのPDFを作るか（引数なし＝1本目）
+case "${1:-first5}" in
+  first5)
+    SRC="pdf/index.html"; PREFIX="ai-first5"
+    ICLOUD_NAME="50代がAIを始めるときに最初にやる5つ.pdf" ;;
+  first-step)
+    SRC="pdf/first-step/index.html"; PREFIX="ai-first-step"
+    ICLOUD_NAME="AI相棒の作り方・最初の一歩.pdf" ;;
+  *)
+    echo "不明な指定です: $1（first5 または first-step）" >&2; exit 1 ;;
+esac
+[ -f "$SRC" ] || { echo "原稿が見つかりません: $SRC" >&2; exit 1; }
 
 [ -x "$CHROME" ] || { echo "Google Chrome が見つかりません: $CHROME" >&2; exit 1; }
 for cmd in curl file python3; do
@@ -48,21 +62,21 @@ done
 
 # 出力ファイル名（既存があればそれを使い、無ければランダム8文字で作る）
 mkdir -p "$OUT_DIR"
-EXISTING=("$OUT_DIR"/ai-first5-*.pdf)
+EXISTING=("$OUT_DIR"/$PREFIX-*.pdf)
 if [ ${#EXISTING[@]} -gt 1 ]; then
-  echo "assets/pdf/ に PDF が複数あります。1つだけ残してから再実行してください:" >&2
+  echo "assets/pdf/ に $PREFIX-*.pdf が複数あります。1つだけ残してから再実行してください:" >&2
   printf '  %s\n' "${EXISTING[@]}" >&2
   exit 1
 elif [ ${#EXISTING[@]} -eq 1 ]; then
   OUT="${EXISTING[1]}"
 else
-  OUT="$OUT_DIR/ai-first5-$(python3 -c 'import secrets; print(secrets.token_hex(4))').pdf"
+  OUT="$OUT_DIR/$PREFIX-$(python3 -c 'import secrets; print(secrets.token_hex(4))').pdf"
 fi
 
 # PDF化（ヘッダー・フッターなし、背景色あり）。Chrome の出力はログに残し、失敗時だけ表示する
-LOG=$(mktemp -t ai-first5-build)
+LOG=$(mktemp -t $PREFIX-build)
 if ! "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer \
-     --print-to-pdf="$PWD/$OUT" "file://$PWD/pdf/index.html" >"$LOG" 2>&1 || [ ! -s "$OUT" ]; then
+     --print-to-pdf="$PWD/$OUT" "file://$PWD/$SRC" >"$LOG" 2>&1 || [ ! -s "$OUT" ]; then
   echo "PDFの生成に失敗しました。Chrome の出力（$LOG）:" >&2
   tail -n 20 "$LOG" >&2
   exit 1

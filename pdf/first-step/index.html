@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>AI相棒の作り方・最初の一歩</title>
+<style>
+  /* ===== フォント（pdf/fonts/ に置いた Noto Sans JP を埋め込む。1本目と共用） ===== */
+  @font-face {
+    font-family: "Noto Sans JP";
+    src: url("../fonts/NotoSansJP-Regular.woff") format("woff");
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: "Noto Sans JP";
+    src: url("../fonts/NotoSansJP-Bold.woff") format("woff");
+    font-weight: 700;
+    font-style: normal;
+  }
+
+  /* ===== 配色（LP・1本目のPDFと同じ） ===== */
+  :root {
+    --text: #1f2937;
+    --text-sub: #4b5563;
+    --heading: #0f172a;
+    --accent: #0284c7;
+    --accent-soft: #e0f2fe;
+    --bg-alt: #f8fafc;
+    --line: #e2e8f0;
+    --line-green: #06c755;
+  }
+
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Noto Sans JP", sans-serif;
+    color: var(--text);
+    font-size: 13.5pt;
+    line-height: 1.9;
+    letter-spacing: 0.03em;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ===== 1ページ = A4 ===== */
+  .page {
+    width: 210mm;
+    height: 297mm;
+    padding: 20mm 22mm 20mm;
+    position: relative;
+    page-break-after: always;
+    break-after: page;
+    background: #fff;
+    overflow: hidden;
+  }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+
+  .foot {
+    position: absolute; left: 22mm; right: 22mm; bottom: 12mm;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 9.5pt; color: var(--text-sub); letter-spacing: 0.05em;
+  }
+  .foot .num { color: var(--accent); font-weight: 700; }
+
+  h1, h2, h3 { color: var(--heading); font-weight: 700; margin: 0; line-height: 1.5; }
+  p { margin: 0 0 1.0em; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ===== 表紙 ===== */
+  .cover {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    background: linear-gradient(180deg, var(--accent-soft) 0%, #ffffff 70%);
+  }
+  .cover .label {
+    display: inline-block; background: var(--accent); color: #fff;
+    font-size: 11pt; font-weight: 700; letter-spacing: 0.15em;
+    padding: 4px 18px; border-radius: 999px; margin-bottom: 14mm;
+  }
+  .cover h1 { font-size: 30pt; line-height: 1.55; }
+  .cover h1 .big { display: block; font-size: 40pt; color: var(--accent); margin-top: 4mm; }
+  .cover .tagline { font-size: 14pt; color: var(--text-sub); margin-top: 8mm; line-height: 1.8; }
+  .cover .avatar {
+    width: 48mm; height: 48mm; border-radius: 50%; object-fit: cover;
+    margin: 14mm auto 8mm; border: 2mm solid #fff;
+    box-shadow: 0 4px 16px rgba(2,132,199,.22);
+  }
+  .cover .author { font-size: 15pt; font-weight: 700; color: var(--heading); line-height: 1.7; }
+  .cover .ig { font-size: 12pt; color: var(--text-sub); }
+
+  /* ===== 本文ページ ===== */
+  .sec-label {
+    font-size: 10.5pt; font-weight: 700; color: var(--accent); letter-spacing: 0.15em;
+    margin-bottom: 3mm;
+  }
+  .page h2 {
+    font-size: 22pt; padding-bottom: 4mm; margin-bottom: 8mm;
+    border-bottom: 1.2mm solid var(--accent);
+  }
+  .page h2 .sub { display: block; font-size: 14pt; color: var(--text-sub); font-weight: 500; margin-top: 1mm; }
+  .num-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16mm; height: 16mm; border-radius: 50%;
+    background: var(--accent); color: #fff; font-size: 20pt; font-weight: 700;
+    margin-bottom: 5mm; line-height: 1;
+  }
+  .body { font-size: 13.5pt; }
+  .body .note { font-size: 11.5pt; color: var(--text-sub); line-height: 1.8; }
+
+  /* 箇条書き（各項目1行） */
+  ul.list { list-style: none; margin: 0 0 1.1em; padding: 0; }
+  ul.list li {
+    position: relative; padding-left: 8mm; margin-bottom: 1mm; line-height: 1.9;
+  }
+  ul.list li::before {
+    content: ""; position: absolute; left: 1.5mm; top: 0.62em;
+    width: 3.2mm; height: 3.2mm; border-radius: 50%; background: var(--accent);
+  }
+  ul.list li strong { color: var(--heading); }
+
+  /* 4段階の流れ */
+  .steps { margin: 0 0 1.1em; }
+  .step {
+    display: flex; gap: 5mm; align-items: flex-start;
+    padding: 4mm 5mm; margin-bottom: 3mm;
+    background: var(--bg-alt); border: 0.4mm solid var(--line); border-radius: 3mm;
+  }
+  .step .n {
+    flex: 0 0 11mm; width: 11mm; height: 11mm; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 14pt;
+    display: flex; align-items: center; justify-content: center; margin-top: 1mm;
+  }
+  .step .t { font-weight: 700; color: var(--heading); font-size: 14pt; line-height: 1.6; }
+  .step .d { font-size: 12pt; line-height: 1.7; margin-top: 0.5mm; }
+  .step .ex { font-size: 11pt; color: var(--text-sub); line-height: 1.7; margin-top: 1mm; }
+  .step .ex::before { content: "実例："; color: var(--accent); font-weight: 700; }
+
+  /* 費用の表 */
+  table.cost { border-collapse: collapse; width: 100%; margin: 0 0 1.1em; font-size: 12pt; line-height: 1.7; }
+  table.cost th, table.cost td { border-bottom: 0.3mm solid var(--line); padding: 2.2mm 2mm; text-align: left; vertical-align: top; }
+  table.cost th { color: var(--text-sub); font-size: 10.5pt; font-weight: 700; letter-spacing: 0.08em; }
+  table.cost td.c { white-space: nowrap; font-weight: 700; color: var(--heading); }
+
+  .point {
+    margin-top: 6mm; padding: 5mm 7mm;
+    background: var(--bg-alt); border-left: 2mm solid var(--accent); border-radius: 0 3mm 3mm 0;
+    font-size: 13.5pt;
+  }
+  .point .pt-label { font-size: 10.5pt; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; display: block; margin-bottom: 1mm; }
+  .point p { margin: 0; font-weight: 700; color: var(--heading); line-height: 1.9; }
+
+  /* ===== 最終ページの案内 ===== */
+  .next-card {
+    margin-top: 6mm; padding: 6mm 7mm;
+    border: 0.6mm solid var(--accent); border-radius: 4mm; background: var(--accent-soft);
+  }
+  .next-card .t { font-weight: 700; color: var(--heading); font-size: 15pt; line-height: 1.6; margin-bottom: 2mm; }
+  .next-card p { font-size: 12.5pt; line-height: 1.8; }
+  .links { margin-top: 6mm; }
+  .link-card {
+    display: flex; align-items: center; gap: 6mm;
+    padding: 5mm 7mm; margin-bottom: 4mm;
+    border: 0.5mm solid var(--line); border-radius: 4mm; background: #fff;
+  }
+  .link-card .mark {
+    flex: 0 0 16mm; width: 16mm; height: 16mm; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 10pt; letter-spacing: 0.05em;
+  }
+  .link-card .mark.ig { background: linear-gradient(135deg, #f58529, #dd2a7b 55%, #8134af); }
+  .link-card .mark.ln { background: var(--line-green); }
+  .link-card .t { font-weight: 700; color: var(--heading); font-size: 13pt; line-height: 1.5; }
+  .link-card .u { font-size: 11pt; color: var(--accent); line-height: 1.5; word-break: break-all; }
+  .link-card a { color: var(--accent); text-decoration: none; }
+  .copyright { margin-top: 5mm; text-align: center; font-size: 10.5pt; color: var(--text-sub); }
+</style>
+</head>
+<body>
+
+<!-- ========== 表紙 ========== -->
+<section class="page cover">
+  <span class="label">LINE登録特典 ②</span>
+  <h1>AI相棒の作り方<span class="big">最初の一歩</span></h1>
+  <div class="tagline">50代・非エンジニアが<br>半年でここまで来た道筋</div>
+  <img class="avatar" src="../../assets/icon-480.jpg" alt="ひろきのアイコン">
+  <div class="author">50代からのAI相棒｜ひろき</div>
+  <div class="ig">Instagram @ai_jvhiro</div>
+</section>
+
+<!-- ========== はじめに ========== -->
+<section class="page">
+  <div class="sec-label">INTRODUCTION</div>
+  <h2>はじめに</h2>
+  <div class="body">
+    <p>このPDFは、「自分だけのAI相棒」を作るまでの道筋を、全体像から書いたものです。</p>
+    <p>1本目の「最初にやる5つ」は心構えの話でした。2本目のこのPDFは、実際に相棒を作るときに「何を、どの順番でやるのか」を示します。</p>
+    <p>操作の手順書ではありません。手順は、あとからお届けする「スターターキット」で追えるようにします。ここでは、道のりの全体と、途中で迷わないための考え方だけを書きます。</p>
+    <p>半年前の私は、ターミナル（黒い画面で命令を打つ道具）を開いたこともありませんでした。それでも、いまは声で売上を答えてくれる相棒「ジャービス」が手元にいます。特別なことはしていません。順番を守っただけです。</p>
+  </div>
+  <div class="point">
+    <span class="pt-label">この PDF の 4 つ</span>
+    <p>1. 始め方：最初の1日にやることは3つだけ<br>2. 必要なもの：道具と、月にかかる費用<br>3. 全体の流れ：4段階で相棒が育つ<br>4. 最初に守ること：迷わないための5つの約束</p>
+  </div>
+  <div class="foot"><span>AI相棒の作り方・最初の一歩</span><span class="num">2</span></div>
+</section>
+
+<!-- ========== 1 始め方 ========== -->
+<section class="page">
+  <div class="num-badge">1</div>
+  <h2>始め方<span class="sub">最初の1日にやることは3つだけ</span></h2>
+  <div class="body">
+    <p>最初の1日は、この3つで終わりです。</p>
+    <ul class="list">
+      <li><strong>Claudeのアカウントを作る</strong>（無料で始められます）</li>
+      <li><strong>相棒に名前を付けて、自己紹介から話しかける</strong></li>
+      <li><strong>自分の仕事の困りごとを、1つだけ話す</strong></li>
+    </ul>
+    <p>名前は何でも構いません。私は「ジャービス」にしました。名前を付けると、道具ではなく相手として話しかけるようになります。</p>
+    <p>自己紹介は、こんな一言で足ります。「私は50代で、小さな会社の経理と総務をしています。パソコンは使えますが、プログラミングはしたことがありません。これから相棒として付き合ってください」</p>
+    <p>そのあと、困りごとを1つ話します。「毎月、この作業に半日かかっていて困っている」で十分です。</p>
+    <p>「うまく質問しよう」としないでください。私は最初、質問の仕方を調べてから話しかけようとして、1週間止まりました。雑に話しても、相棒は聞き返してくれます。</p>
+  </div>
+  <div class="point">
+    <span class="pt-label">POINT</span>
+    <p>アカウント、名前と自己紹介、困りごと1つ。それだけで初日は合格です。</p>
+  </div>
+  <div class="foot"><span>AI相棒の作り方・最初の一歩</span><span class="num">3</span></div>
+</section>
+
+<!-- ========== 2 必要なもの ========== -->
+<section class="page">
+  <div class="num-badge">2</div>
+  <h2>必要なもの<span class="sub">道具と、月にかかる費用</span></h2>
+  <div class="body">
+    <p>新しく買うものは、ほぼありません。いま使っているパソコンで始められます。</p>
+    <ul class="list">
+      <li><strong>パソコン</strong>：Mac でも Windows でも構いません</li>
+      <li><strong>ブラウザ</strong>：Chrome か Safari。ふだん使っているもので大丈夫です</li>
+      <li><strong>Claude</strong>：無料で始められます。月額プランは足りなくなってから</li>
+      <li><strong>Claude Code</strong>：相棒がファイルを作って直せる道具。4段階目から</li>
+    </ul>
+    <p>費用は正直に書きます。私の場合、いまはこのくらいです。</p>
+    <table class="cost">
+      <tr><th>段階</th><th>使うもの</th><th>月の費用（目安）</th></tr>
+      <tr><td>①〜③</td><td>Claude の有料プラン</td><td class="c">約3,000円</td></tr>
+      <tr><td>④</td><td>Claude Code が十分に使えるプラン</td><td class="c">約15,000円</td></tr>
+      <tr><td>おまけ</td><td>Fish Audio（ジャービスの声）</td><td class="c">最初は不要</td></tr>
+    </table>
+    <p class="note">※ 為替やプランの改定で変わります。声は「あると楽しい」おまけで、文字のやりとりだけで仕事は十分に楽になります。</p>
+  </div>
+  <div class="point">
+    <span class="pt-label">POINT</span>
+    <p>いまのパソコンで、無料から始める。お金は足りなくなってから。</p>
+  </div>
+  <div class="foot"><span>AI相棒の作り方・最初の一歩</span><span class="num">4</span></div>
+</section>
+
+<!-- ========== 3 全体の流れ ========== -->
+<section class="page">
+  <div class="num-badge">3</div>
+  <h2>全体の流れ<span class="sub">4段階で相棒が育つ</span></h2>
+  <div class="body">
+    <p>相棒は、この4段階で育ちます。飛ばさず、上から順に進みます。</p>
+    <div class="steps">
+      <div class="step">
+        <div class="n">1</div>
+        <div>
+          <div class="t">話す（相談相手にする）</div>
+          <div class="d">仕事の困りごとや、分からない言葉を、そのまま聞く。</div>
+          <div class="ex">毎晩「今日いちばん面倒だった作業」を話していました。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <div>
+          <div class="t">書かせる（メール・Excelの式・文章）</div>
+          <div class="d">下書きを頼む。Excel の式は「こういう計算がしたい」と日本語で頼む。</div>
+          <div class="ex">取引先への催促メールと、月次集計の式はほぼ任せています。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <div>
+          <div class="t">自分のデータを読ませる</div>
+          <div class="d">会社の Excel を渡して、集計や突き合わせをさせる。社名や個人名は伏せ字にして試す。</div>
+          <div class="ex">売上の Excel を読ませて、前日比を出させました。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="n">4</div>
+        <div>
+          <div class="t">動かす（Claude Code で自動化する）</div>
+          <div class="d">毎回頼んでいたことを、相棒が自分で動く仕組みにする。声で答えさせることもできる。</div>
+          <div class="ex">朝「今日の売上は？」と聞くと、ジャービスが声で答えます。</div>
+        </div>
+      </div>
+    </div>
+    <p>①だけでも、仕事は十分に楽になります。④まで行かなくても、相棒は相棒です。</p>
+  </div>
+  <div class="foot"><span>AI相棒の作り方・最初の一歩</span><span class="num">5</span></div>
+</section>
+
+<!-- ========== 4 最初に守ること ========== -->
+<section class="page">
+  <div class="num-badge">4</div>
+  <h2>最初に守ること<span class="sub">迷わないための5つの約束</span></h2>
+  <div class="body">
+    <p>半年やって、これを守った日は前に進み、破った日は止まりました。</p>
+    <ul class="list">
+      <li><strong>自分の仕事のことだけやる</strong>。流行りの使い方は追わない</li>
+      <li><strong>1日1個だけ試す</strong>。欲張ると、どれも中途半端になる</li>
+      <li><strong>わからなければ、相棒本人に聞く</strong></li>
+      <li><strong>会社や取引先の実名は伏せ字で試す</strong>。慣れてから範囲を広げる</li>
+      <li><strong>うまくいかなくても3日は続ける</strong></li>
+    </ul>
+    <p>3つ目は、こう聞きます。「今の説明の意味を、50代の非エンジニアにわかるように言い直して」。これだけで、ほとんどの「わからない」は解けます。私はこの一言を覚えるまで、専門用語を検索しては疲れていました。</p>
+    <p>4つ目の伏せ字は、「A社」「B部長」のように置き換えるだけです。慣れないうちは、これで安心して試せます。</p>
+    <p>5つ目は、最初の3日がいちばん「向いていないかも」と思う時期だからです。3日続くと、相棒の返事が自分の仕事に合ってきます。</p>
+  </div>
+  <div class="point">
+    <span class="pt-label">POINT</span>
+    <p>自分の仕事だけ。1日1個。わからなければ相棒に聞く。実名は伏せる。3日は続ける。</p>
+  </div>
+  <div class="foot"><span>AI相棒の作り方・最初の一歩</span><span class="num">6</span></div>
+</section>
+
+<!-- ========== 次の一歩・最終ページ ========== -->
+<section class="page">
+  <div class="sec-label">NEXT STEP</div>
+  <h2>次の一歩</h2>
+  <div class="body">
+    <p>ここまでが、相棒を作る道のりの全体像です。読み終えたら、まず「始め方」の3つをやってみてください。</p>
+    <p>そのうえで、実際に動く相棒を手元に置きたい方のために、次をお届けします。</p>
+  </div>
+  <div class="next-card">
+    <div class="t">動くAI相棒「スターターキット」</div>
+    <p>HTML 1枚と設定ファイル 3つ、それに手順書（README）のセットです。ダウンロードして開けば、自分の名前を付けた相棒と話し始められます。準備ができ次第、この LINE でお届けします。</p>
+  </div>
+  <div class="body" style="margin-top:6mm">
+    <p>毎日の実例は、Instagram の「Day N」シリーズで出しています。うまくいかなかったことも、そのまま載せています。</p>
+    <p>質問があれば、Instagram の DM か、この LINE にそのまま送ってください。</p>
+  </div>
+  <div class="links">
+    <div class="link-card">
+      <div class="mark ig">Insta</div>
+      <div>
+        <div class="t">Instagram：@ai_jvhiro</div>
+        <div class="u"><a href="https://www.instagram.com/ai_jvhiro/">https://www.instagram.com/ai_jvhiro/</a></div>
+      </div>
+    </div>
+    <div class="link-card">
+      <div class="mark ln">LINE</div>
+      <div>
+        <div class="t">公式LINE</div>
+        <div class="u"><a href="https://lin.ee/yuBrECZ5">https://lin.ee/yuBrECZ5</a></div>
+      </div>
+    </div>
+  </div>
+  <div class="copyright">© 2026 50代からのAI相棒｜ひろき（@ai_jvhiro）</div>
+  <div class="foot"><span>AI相棒の作り方・最初の一歩</span><span class="num">7</span></div>
+</section>
+
+</body>
+</html>
