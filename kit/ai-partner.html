@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI相棒スターターキット</title>
+<style>
+  /* ===== 配色（LPと同じ差し色。背景は暗く） ===== */
+  :root {
+    --bg: #0b1220;
+    --bg-panel: #111a2e;
+    --bg-input: #0f172a;
+    --line: #243247;
+    --text: #e5edf7;
+    --text-sub: #93a4bd;
+    --accent: #0284c7;
+    --accent-bright: #38bdf8;
+    --accent-soft: #e0f2fe;
+    --me: #1e3a5f;
+    --danger: #f87171;
+    --ok: #4ade80;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", "Meiryo", system-ui, -apple-system, sans-serif;
+    font-size: 17px; line-height: 1.8; letter-spacing: 0.02em;
+    -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column;
+  }
+  button { font: inherit; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  input, textarea { font: inherit; }
+
+  /* ===== 上部：名前と状態 ===== */
+  header {
+    padding: 14px 20px 6px; text-align: center; flex: 0 0 auto;
+  }
+  #partnerName { font-size: 1.35rem; font-weight: 700; letter-spacing: 0.08em; }
+  #status {
+    display: inline-block; margin-top: 2px; font-size: .85rem; color: var(--text-sub);
+    padding: 2px 14px; border-radius: 999px; border: 1px solid var(--line);
+  }
+  #status.thinking { color: var(--accent-bright); border-color: var(--accent); }
+  #status.speaking { color: var(--ok); border-color: var(--ok); }
+  #status.listening { color: #fbbf24; border-color: #fbbf24; }
+
+  /* ===== 中央：光る円 ===== */
+  .orb-wrap { flex: 0 0 auto; display: flex; justify-content: center; padding: 10px 0 6px; }
+  .orb {
+    width: 120px; height: 120px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #7dd3fc 0%, var(--accent) 45%, #0c4a6e 100%);
+    box-shadow: 0 0 30px 8px rgba(2,132,199,.45), 0 0 80px 20px rgba(2,132,199,.18);
+    animation: breathe 3.2s ease-in-out infinite;
+  }
+  .thinking .orb { animation: pulse .9s ease-in-out infinite; }
+  .speaking .orb { animation: talk .5s ease-in-out infinite; box-shadow: 0 0 34px 10px rgba(74,222,128,.35), 0 0 90px 24px rgba(2,132,199,.2); }
+  .listening .orb { box-shadow: 0 0 34px 10px rgba(251,191,36,.4), 0 0 90px 24px rgba(2,132,199,.15); }
+  @keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  @keyframes pulse { 0%,100% { transform: scale(.96); opacity: .85; } 50% { transform: scale(1.1); opacity: 1; } }
+  @keyframes talk { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+
+  /* ===== 会話ログ ===== */
+  #log {
+    flex: 1 1 auto; overflow-y: auto; padding: 8px 16px 12px;
+    max-width: 760px; width: 100%; margin: 0 auto;
+  }
+  .msg { display: flex; margin: 8px 0; }
+  .msg .b {
+    max-width: 85%; padding: 10px 16px; border-radius: 16px; white-space: pre-wrap; word-break: break-word;
+    font-size: 1rem; line-height: 1.75;
+  }
+  .msg.me { justify-content: flex-end; }
+  .msg.me .b { background: var(--me); border-bottom-right-radius: 4px; }
+  .msg.ai .b { background: var(--bg-panel); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg.sys .b { background: transparent; border: 1px dashed var(--line); color: var(--text-sub); font-size: .92rem; max-width: 100%; }
+  .msg.err .b { background: rgba(248,113,113,.1); border: 1px solid var(--danger); color: #fecaca; font-size: .95rem; max-width: 100%; }
+
+  /* ===== 下部：入力 ===== */
+  footer {
+    flex: 0 0 auto; padding: 10px 16px 16px; border-top: 1px solid var(--line); background: var(--bg);
+  }
+  .row { display: flex; gap: 8px; max-width: 760px; margin: 0 auto; }
+  #input {
+    flex: 1 1 auto; min-width: 0; padding: 12px 14px; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--bg-input); color: var(--text);
+    resize: none; height: 52px; max-height: 140px;
+  }
+  #input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .btn {
+    padding: 0 16px; min-height: 52px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--bg-panel); color: var(--text); font-weight: 700; white-space: nowrap;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: #0369a1; }
+  .btn.mic { min-width: 100px; }
+  .btn.mic.on { background: #b45309; border-color: #f59e0b; }
+  .btn.gear { min-width: 52px; font-size: 1.1rem; }
+  .row2 { display: flex; justify-content: space-between; gap: 8px; max-width: 760px; margin: 8px auto 0; font-size: .82rem; color: var(--text-sub); flex-wrap: wrap; }
+  #micNote { color: var(--text-sub); }
+
+  @media (max-width: 480px) {
+    body { font-size: 16px; }
+    .orb { width: 90px; height: 90px; }
+    .btn { padding: 0 12px; }
+    .btn.mic { min-width: 0; }
+    .row { flex-wrap: wrap; }
+    #input { flex-basis: 100%; }
+  }
+
+  /* ===== 設定画面（モーダル） ===== */
+  #settings {
+    position: fixed; inset: 0; background: rgba(4,8,16,.86); overflow-y: auto; z-index: 10;
+    padding: 24px 16px 48px;
+  }
+  #settings[hidden] { display: none; }
+  .panel {
+    max-width: 640px; margin: 0 auto; background: var(--bg-panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 24px 22px 28px;
+  }
+  .panel h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  .panel .lead { color: var(--text-sub); font-size: .95rem; margin: 0 0 18px; }
+  .field { margin: 0 0 18px; }
+  .field label { display: block; font-weight: 700; margin-bottom: 4px; }
+  .field .hint { font-size: .85rem; color: var(--text-sub); margin: 0 0 6px; }
+  .field input[type=text], .field input[type=password], .field textarea {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg-input); color: var(--text);
+  }
+  .field textarea { min-height: 96px; resize: vertical; line-height: 1.6; font-size: .95rem; }
+  .field input:focus, .field textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .chip { padding: 3px 12px; border-radius: 999px; border: 1px solid var(--accent); background: transparent; color: var(--accent-bright); font-size: .9rem; }
+  .chip:hover { background: rgba(2,132,199,.2); }
+  .filebtn { display: inline-block; padding: 8px 14px; border-radius: 10px; border: 1px dashed var(--accent); color: var(--accent-bright); cursor: pointer; font-size: .95rem; }
+  .filebtn input { display: none; }
+  #fileNote { font-size: .85rem; color: var(--text-sub); margin-top: 6px; }
+  .toggle { display: flex; align-items: center; gap: 10px; }
+  .toggle input { width: 20px; height: 20px; }
+  .notice {
+    font-size: .85rem; color: var(--text-sub); background: var(--bg-input); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 14px; margin: 6px 0 18px; line-height: 1.7;
+  }
+  .notice li { margin: 0; }
+  .notice ul { margin: 0; padding-left: 1.2em; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .actions .btn { flex: 1 1 auto; }
+  #formErr { color: var(--danger); font-size: .9rem; margin: 0 0 8px; min-height: 1.4em; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     会話画面
+     ============================================================ -->
+<header>
+  <div id="partnerName">相棒</div>
+  <div id="status">待機中</div>
+</header>
+<div class="orb-wrap"><div class="orb" aria-hidden="true"></div></div>
+<div id="log" aria-live="polite"></div>
+<footer>
+  <div class="row">
+    <textarea id="input" placeholder="ここに話しかける（Enterで送信、Shift+Enterで改行）" rows="1"></textarea>
+    <button id="sendBtn" class="btn primary">送る</button>
+    <button id="micBtn" class="btn mic" hidden>🎤 話す</button>
+    <button id="gearBtn" class="btn gear" title="設定">⚙</button>
+  </div>
+  <div class="row2">
+    <span id="micNote"></span>
+    <span id="voiceNote"></span>
+  </div>
+</footer>
+
+<!-- ============================================================
+     設定画面（初回はここから）
+     ============================================================ -->
+<div id="settings" hidden>
+  <form class="panel" id="settingsForm" autocomplete="off">
+    <h1>相棒の設定</h1>
+    <p class="lead">最初に一度だけ入力します。あとから ⚙ で開き直せます。</p>
+
+    <div class="field">
+      <label for="fName">1. 相棒の名前（必須）</label>
+      <p class="hint">自分で決めます。候補を押しても、自由に入力しても構いません。</p>
+      <input type="text" id="fName" placeholder="例：ソラ" maxlength="20" required>
+      <div class="chips">
+        <button type="button" class="chip" data-name="ソラ">ソラ</button>
+        <button type="button" class="chip" data-name="ハル">ハル</button>
+        <button type="button" class="chip" data-name="コトハ">コトハ</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="fCall">2. あなたの呼ばれ方</label>
+      <input type="text" id="fCall" placeholder="例：ひろきさん" maxlength="20">
+    </div>
+
+    <div class="field">
+      <label for="fKey">3. Claude APIキー</label>
+      <p class="hint">このパソコンのこのブラウザにだけ保存され、外には送られません（相棒への問い合わせに使うだけです）。</p>
+      <input type="password" id="fKey" placeholder="sk-ant-…" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label>4. 設定ファイルの読み込み</label>
+      <p class="hint">「仕事.txt」「目標.txt」「今の状況.txt」をまとめて選べます。読み込んだ内容は下の欄で直接直せます。</p>
+      <label class="filebtn">📄 ファイルを選ぶ（複数可）<input type="file" id="fFiles" accept=".txt,text/plain" multiple></label>
+      <div id="fileNote"></div>
+    </div>
+    <div class="field">
+      <label for="fWork">仕事</label>
+      <textarea id="fWork" placeholder="どんな仕事をしているか。相棒に知っておいてほしいこと。"></textarea>
+    </div>
+    <div class="field">
+      <label for="fGoal">目標</label>
+      <textarea id="fGoal" placeholder="相棒と一緒に何ができるようになりたいか。"></textarea>
+    </div>
+    <div class="field">
+      <label for="fNow">今の状況</label>
+      <textarea id="fNow" placeholder="いま困っていること。今週やろうとしていること。"></textarea>
+    </div>
+
+    <div class="field">
+      <label class="toggle"><input type="checkbox" id="fVoice" checked> 5. 相棒の返事を読み上げる</label>
+    </div>
+
+    <div class="notice">
+      <ul>
+        <li>Claude API は利用量に応じて有料です（使った分だけ課金されます）。</li>
+        <li>会話の内容と上の設定文は、返事を作るために Anthropic に送られます。</li>
+        <li>会社や取引先、個人の実名は「A社」「B部長」のように伏せ字で試すことをおすすめします。</li>
+      </ul>
+    </div>
+
+    <p id="formErr"></p>
+    <div class="actions">
+      <button type="submit" class="btn primary">保存して会話をはじめる</button>
+      <button type="button" class="btn" id="cancelBtn" hidden>閉じる</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ===== 変えたいときはここ =====
+  const MODEL = 'claude-haiku-4-5';           // 使うモデル
+  const MAX_TOKENS = 1024;                     // 返事の最大長
+  const HISTORY_PAIRS = 20;                    // 送る会話履歴（往復数）
+  const API_URL = 'https://api.anthropic.com/v1/messages';
+  const API_VERSION = '2023-06-01';
+  const STORE_KEY = 'ai-partner-kit-v1';
+
+  // ===== 要素 =====
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    name: $('partnerName'), status: $('status'), log: $('log'), input: $('input'),
+    send: $('sendBtn'), mic: $('micBtn'), gear: $('gearBtn'), micNote: $('micNote'), voiceNote: $('voiceNote'),
+    settings: $('settings'), form: $('settingsForm'), fName: $('fName'), fCall: $('fCall'), fKey: $('fKey'),
+    fFiles: $('fFiles'), fileNote: $('fileNote'), fWork: $('fWork'), fGoal: $('fGoal'), fNow: $('fNow'),
+    fVoice: $('fVoice'), formErr: $('formErr'), cancel: $('cancelBtn'),
+  };
+
+  // ===== 保存（localStorage のみ） =====
+  const defaults = { name: '', callMe: '', apiKey: '', work: '', goal: '', now: '', voice: true, log: [] };
+  let state = load();
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return { ...defaults };
+      const s = JSON.parse(raw);
+      return { ...defaults, ...s, log: Array.isArray(s.log) ? s.log : [] };
+    } catch (e) { return { ...defaults }; }
+  }
+  function save() {
+    state.log = state.log.slice(-HISTORY_PAIRS * 2);
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+    catch (e) { addMsg('err', '設定を保存できませんでした。ブラウザのプライベートモードでは保存が効かないことがあります。'); }
+  }
+
+  // ===== 状態表示 =====
+  const STATUS = { idle: '待機中', thinking: '考え中', speaking: '話し中', listening: '聞いています' };
+  function setStatus(key) {
+    el.status.textContent = STATUS[key];
+    el.status.className = key === 'idle' ? '' : key;
+    document.body.classList.remove('thinking', 'speaking', 'listening');
+    if (key !== 'idle') document.body.classList.add(key);
+  }
+
+  // ===== 会話ログ =====
+  function addMsg(kind, text) {
+    const wrap = document.createElement('div'); wrap.className = 'msg ' + kind;
+    const b = document.createElement('div'); b.className = 'b'; b.textContent = text;
+    wrap.appendChild(b); el.log.appendChild(wrap);
+    el.log.scrollTop = el.log.scrollHeight;
+  }
+  function renderLog() {
+    el.log.innerHTML = '';
+    if (state.log.length === 0) {
+      addMsg('sys', `${state.name} と話してみましょう。文字を打つか、🎤 を押しながら話してください。`);
+    }
+    for (const m of state.log) addMsg(m.role === 'user' ? 'me' : 'ai', m.content);
+  }
+
+  // ===== システムプロンプト =====
+  function systemPrompt() {
+    const call = state.callMe ? `相手の呼び方は「${state.callMe}」。` : '';
+    const parts = [
+      `あなたは「${state.name}」という名前のAI相棒です。${call}`,
+      '相手は50代の非エンジニアで、パソコンは使えますが、プログラミングやターミナルは触ったことがありません。',
+      '口調は、丁寧で落ち着いた相棒。専門用語は出た場所で一言説明する。長い返事は避け、3〜5文で返す。箇条書きは必要なときだけ。',
+      '相手の仕事と状況を踏まえ、次にやる一歩を具体的に示す。わからないことは正直にそう言う。',
+    ];
+    if (state.work) parts.push(`\n【相手の仕事】\n${state.work}`);
+    if (state.goal) parts.push(`\n【相手の目標】\n${state.goal}`);
+    if (state.now) parts.push(`\n【相手の今の状況】\n${state.now}`);
+    return parts.join('\n');
+  }
+
+  // ===== Claude API 呼び出し =====
+  async function ask(userText) {
+    if (!state.apiKey) {
+      throw new Error('APIキーが設定されていません。⚙ 設定画面の「3. Claude APIキー」に入力してください。');
+    }
+    const messages = state.log.slice(-HISTORY_PAIRS * 2).map(m => ({ role: m.role, content: m.content }));
+    messages.push({ role: 'user', content: userText });
+
+    let res;
+    try {
+      res = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'x-api-key': state.apiKey,
+          'anthropic-version': API_VERSION,
+          'anthropic-dangerous-direct-browser-access': 'true',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, system: systemPrompt(), messages }),
+      });
+    } catch (e) {
+      throw new Error('通信できませんでした。インターネットの接続を確認して、もう一度送ってください。');
+    }
+
+    if (!res.ok) {
+      let detail = '';
+      try { const j = await res.json(); detail = (j && j.error && j.error.message) || ''; } catch (e) {}
+      const s = res.status;
+      if (s === 401) throw new Error('APIキーが違うようです。⚙ 設定画面でキーを貼り直してください（前後に空白が入っていないかも確認）。');
+      if (s === 402 || /credit|balance|billing/i.test(detail)) throw new Error('Anthropic の残高が不足しています。console.anthropic.com で残高（クレジット）を追加してから、もう一度送ってください。');
+      if (s === 403) throw new Error('このキーでは使えない操作です。console.anthropic.com でキーの権限を確認してください。');
+      if (s === 429) throw new Error('短時間に送りすぎました。少し待ってから、もう一度送ってください。');
+      if (s === 529 || s >= 500) throw new Error('Anthropic 側が混み合っています。少し待ってから、もう一度送ってください。');
+      throw new Error(`エラーが返ってきました（${s}）。${detail ? detail + ' ' : ''}⚙ 設定画面の内容を確認してください。`);
+    }
+    const data = await res.json();
+    const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n').trim();
+    if (!text) throw new Error('返事が空でした。もう一度送ってみてください。');
+    return text;
+  }
+
+  let busy = false;
+  async function send(textFromVoice) {
+    if (busy) return;
+    const text = (textFromVoice != null ? textFromVoice : el.input.value).trim();
+    if (!text) return;
+    busy = true; el.send.disabled = true; el.input.value = ''; autoGrow();
+    if (synth) synth.cancel();           // 前の読み上げが残っていれば止める
+    addMsg('me', text);
+    setStatus('thinking');
+    let reply = null;
+    try {
+      reply = await ask(text);
+      state.log.push({ role: 'user', content: text }, { role: 'assistant', content: reply });
+      save();
+      addMsg('ai', reply);
+    } catch (e) {
+      addMsg('err', e.message || String(e));
+      setStatus('idle');
+    } finally {
+      busy = false; el.send.disabled = false; el.input.focus();
+    }
+    // 読み上げは送信を止めずに行う（終了イベントが来ないブラウザでも入力が固まらないように）
+    if (reply != null) speak(reply);
+  }
+
+  // ===== 声（出力）：speechSynthesis =====
+  const synth = window.speechSynthesis;
+  function pickVoice() {
+    if (!synth) return null;
+    const vs = synth.getVoices().filter(v => /^ja/i.test(v.lang));
+    if (!vs.length) return null;
+    // Kyoko / O-ren / Google 日本語 などがあれば優先
+    return vs.find(v => /Kyoko|O-ren|Google 日本語|Hattori/i.test(v.name)) || vs[0];
+  }
+  function speak(text) {
+    return new Promise((resolve) => {
+      if (!state.voice || !synth) { setStatus('idle'); return resolve(); }
+      try {
+        synth.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'ja-JP'; u.rate = 1.0; u.pitch = 1.0;
+        const v = pickVoice(); if (v) u.voice = v;
+        u.onstart = () => setStatus('speaking');
+        u.onend = () => { setStatus('idle'); resolve(); };
+        u.onerror = () => { setStatus('idle'); resolve(); };
+        setStatus('speaking');
+        synth.speak(u);
+      } catch (e) { setStatus('idle'); resolve(); }
+    });
+  }
+  function updateVoiceNote() {
+    if (!synth) { el.voiceNote.textContent = 'このブラウザは読み上げに対応していません'; return; }
+    el.voiceNote.textContent = state.voice ? '🔊 読み上げ ON（⚙で切替）' : '🔇 読み上げ OFF（⚙で切替）';
+  }
+
+  // ===== 声（入力）：SpeechRecognition。押している間だけ聞く =====
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null, heard = '', listening = false;
+  if (SR) {
+    el.mic.hidden = false;
+    el.micNote.textContent = '🎤 を押しながら話して、離すと送ります';
+    rec = new SR();
+    rec.lang = 'ja-JP'; rec.continuous = true; rec.interimResults = true;
+    rec.onresult = (ev) => {
+      let s = '';
+      for (let i = 0; i < ev.results.length; i++) s += ev.results[i][0].transcript;
+      heard = s; el.input.value = s; autoGrow();
+    };
+    rec.onerror = (ev) => {
+      stopListen(false);
+      if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+        addMsg('err', 'マイクの使用が許可されていません。ブラウザのアドレスバー付近のマイクの許可を「許可」にしてください。');
+      } else if (ev.error !== 'aborted' && ev.error !== 'no-speech') {
+        addMsg('err', `音声入力でエラーが起きました（${ev.error}）。文字入力をお使いください。`);
+      }
+    };
+    rec.onend = () => { if (listening) stopListen(true); };
+
+    const startListen = (e) => {
+      e.preventDefault();
+      if (busy || listening) return;
+      heard = ''; listening = true; el.mic.classList.add('on'); setStatus('listening');
+      try { if (synth) synth.cancel(); rec.start(); } catch (err) { stopListen(false); }
+    };
+    const stopListen = (sendIt) => {
+      if (!listening) { return; }
+      listening = false; el.mic.classList.remove('on'); setStatus('idle');
+      try { rec.stop(); } catch (err) {}
+      const t = heard.trim(); heard = '';
+      if (sendIt && t) setTimeout(() => send(t), 150); else if (!t) el.input.value = '';
+    };
+    el.mic.addEventListener('mousedown', startListen);
+    el.mic.addEventListener('touchstart', startListen, { passive: false });
+    el.mic.addEventListener('mouseup', () => stopListen(true));
+    el.mic.addEventListener('mouseleave', () => stopListen(true));
+    el.mic.addEventListener('touchend', (e) => { e.preventDefault(); stopListen(true); });
+    el.mic.addEventListener('touchcancel', () => stopListen(false));
+  } else {
+    el.mic.hidden = true;
+    el.micNote.textContent = 'このブラウザは音声入力に対応していません。文字入力をお使いください。';
+  }
+
+  // ===== 入力欄 =====
+  function autoGrow() {
+    el.input.style.height = '52px';
+    el.input.style.height = Math.min(140, el.input.scrollHeight) + 'px';
+  }
+  el.input.addEventListener('input', autoGrow);
+  el.input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
+  });
+  el.send.addEventListener('click', () => send());
+
+  // ===== 設定画面 =====
+  function openSettings(firstTime) {
+    el.fName.value = state.name; el.fCall.value = state.callMe; el.fKey.value = state.apiKey;
+    el.fWork.value = state.work; el.fGoal.value = state.goal; el.fNow.value = state.now;
+    el.fVoice.checked = !!state.voice; el.formErr.textContent = ''; el.fileNote.textContent = '';
+    el.cancel.hidden = !!firstTime;
+    el.settings.hidden = false;
+    el.fName.focus();
+  }
+  function closeSettings() { el.settings.hidden = true; el.input.focus(); }
+
+  el.gear.addEventListener('click', () => openSettings(false));
+  el.cancel.addEventListener('click', closeSettings);
+  document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { el.fName.value = c.dataset.name; }));
+
+  // ファイル名で「仕事／目標／今の状況」を振り分ける。判別できないものは順に空欄へ
+  el.fFiles.addEventListener('change', async () => {
+    const files = Array.from(el.fFiles.files || []);
+    if (!files.length) return;
+    const notes = [];
+    const targets = { work: el.fWork, goal: el.fGoal, now: el.fNow };
+    const unmatched = [];
+    for (const f of files) {
+      let text = '';
+      try { text = await f.text(); } catch (e) { notes.push(`${f.name}：読めませんでした`); continue; }
+      text = text.replace(/^﻿/, '').trim();
+      const n = f.name.normalize('NFC');
+      let key = null;
+      if (/仕事|work/i.test(n)) key = 'work';
+      else if (/目標|goal/i.test(n)) key = 'goal';
+      else if (/状況|now|status/i.test(n)) key = 'now';
+      if (key) { targets[key].value = text; notes.push(`${f.name} → ${key === 'work' ? '仕事' : key === 'goal' ? '目標' : '今の状況'}`); }
+      else unmatched.push({ name: f.name, text });
+    }
+    for (const u of unmatched) {
+      const empty = ['work', 'goal', 'now'].find(k => !targets[k].value.trim());
+      if (empty) { targets[empty].value = u.text; notes.push(`${u.name} → ${empty === 'work' ? '仕事' : empty === 'goal' ? '目標' : '今の状況'}（名前で判別できないため空欄へ）`); }
+      else notes.push(`${u.name}：どの欄か判別できず、空欄もないため読み込みませんでした`);
+    }
+    el.fileNote.textContent = notes.join(' ／ ');
+    el.fFiles.value = '';
+  });
+
+  el.form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = el.fName.value.trim();
+    if (!name) { el.formErr.textContent = '相棒の名前を入力してください。'; el.fName.focus(); return; }
+    const key = el.fKey.value.trim();
+    if (key && !/^sk-ant-/.test(key)) { el.formErr.textContent = 'APIキーは「sk-ant-」で始まります。貼り付けた内容を確認してください。'; el.fKey.focus(); return; }
+    state.name = name; state.callMe = el.fCall.value.trim(); state.apiKey = key;
+    state.work = el.fWork.value.trim(); state.goal = el.fGoal.value.trim(); state.now = el.fNow.value.trim();
+    state.voice = el.fVoice.checked;
+    save();
+    el.name.textContent = state.name; document.title = `${state.name}｜AI相棒`;
+    updateVoiceNote(); renderLog(); closeSettings();
+    if (!state.apiKey) addMsg('sys', 'APIキーが未設定です。会話するには ⚙ 設定画面でキーを入力してください。');
+  });
+
+  // ===== 起動 =====
+  setStatus('idle');
+  if (!state.name) {
+    openSettings(true);
+  } else {
+    el.name.textContent = state.name; document.title = `${state.name}｜AI相棒`;
+    renderLog(); updateVoiceNote();
+  }
+})();
+</script>
+</body>
+</html>
