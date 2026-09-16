@@ -140,6 +140,7 @@
   }
   .panel h1 { font-size: 1.25rem; margin: 0 0 4px; }
   .panel .lead { color: var(--text-sub); font-size: .95rem; margin: 0 0 18px; }
+  .panel .lead.browser { color: var(--accent-bright); margin-bottom: 6px; }
   .field { margin: 0 0 18px; }
   .field label { display: block; font-weight: 700; margin-bottom: 4px; }
   .field .hint { font-size: .85rem; color: var(--text-sub); margin: 0 0 6px; }
@@ -198,6 +199,7 @@
 <div id="settings" hidden>
   <form class="panel" id="settingsForm" autocomplete="off">
     <h1>相棒の設定</h1>
+    <p class="lead browser">Mac の方は Safari、Windows の方は Chrome か Edge でお使いください。</p>
     <p class="lead">最初に一度だけ入力します。あとから ⚙ で開き直せます。</p>
 
     <div class="field">
@@ -499,7 +501,7 @@
               fallback = true; lastSpeech = `${v.name} で始まらないため既定の声で再試行中`; updateVoiceNote();
               setTimeout(speakPart, 250);
             } else {
-              finish(false, '3秒待っても開始できませんでした。Chrome を再起動すると直ることがあります。文字でご利用ください。');
+              finish(false, '3秒待っても開始できませんでした。Mac の方は Safari で開くと鳴ることが多いです。文字でもご利用いただけます。');
             }
           }, 3000);
         }
