@@ -441,9 +441,34 @@
     };
     rec.onend = () => { if (listening) stopListen(true); };
 
-    const startListen = (e) => {
+    // マイクの許可は最初の1回だけ取り、ストリームを保持しておく。
+    // file:// で開いたページは Chrome が許可を保存しないため、認識を始めるたびに
+    // 許可ダイアログが出る。取得済みのストリームを持ち続ければ、同じページを
+    // 開いている間は再要求されない（ページを開き直すと、もう一度だけ聞かれる）。
+    let micStream = null, micAsking = false;
+    const ensureMic = async () => {
+      if (micStream && micStream.active) return true;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true; // 古い環境は従来どおり
+      if (micAsking) return false;
+      micAsking = true; setStatus('listening');
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        addMsg('sys', 'マイクが使えるようになりました。もう一度 🎤 を押しながら話してください。');
+        return false; // 許可の直後は指が離れていることが多いので、ここでは聞き取りを始めない
+      } catch (err) {
+        if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
+          addMsg('err', 'マイクの使用が許可されていません。ダイアログで「許可」を選ぶか、アドレスバー左のアイコンからマイクを許可してください。');
+        } else {
+          addMsg('err', `マイクを使えませんでした（${err && err.name ? err.name : '不明'}）。接続と設定を確認してください。`);
+        }
+        return false;
+      } finally { micAsking = false; setStatus('idle'); }
+    };
+
+    const startListen = async (e) => {
       e.preventDefault();
-      if (busy || listening) return;
+      if (busy || listening || micAsking) return;
+      if (!(await ensureMic())) return;
       heard = ''; listening = true; el.mic.classList.add('on'); setStatus('listening');
       try { if (synth) synth.cancel(); rec.start(); } catch (err) { stopListen(false); }
     };
