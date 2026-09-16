@@ -221,20 +221,26 @@
 
     <h3>1. API キーの取り方</h3>
     <ol class="steps">
-      <li><span class="t">Anthropic Console を開く。</span><br><a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">console.anthropic.com</a> でアカウントを作ってログインします。メールアドレスか Google アカウントで作れます。
-        <!-- IMG: console-login （Console のログイン／アカウント作成画面のスクショ） -->
+      <li><span class="t">Anthropic Console を開いてログインする。</span><br><a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">console.anthropic.com</a> を開き、「Googleで続行」か「メールで続ける」でアカウントを作ってログインします。
+        <div class="shot"><img src="assets/img/01_console-login.png" alt="Console のログイン画面。「Googleで続行」と「メールで続ける」のボタン" loading="lazy" width="1600" height="893"></div>
       </li>
-      <li><span class="t">「API Keys」を開く。</span><br>左のメニューから「API Keys」を選びます。
-        <!-- IMG: console-apikeys （API Keys の一覧画面のスクショ） -->
+      <li><span class="t">「APIキー」を開き、「＋ キーを作成」を押す。</span><br>左メニューの「組織の設定」→「APIキー」を開き、右上の「＋ キーを作成」を押します。
+        <div class="shot"><img src="assets/img/02_console-apikeys.png" alt="APIキーの一覧画面。右上の「＋ キーを作成」を赤枠で示している" loading="lazy" width="1600" height="899"></div>
       </li>
-      <li><span class="t">「Create Key」で作る。</span><br>名前（例：aibuddy）を付けて作成します。表示されたキー（sk-ant- で始まる長い文字列）をコピーします。<span class="emph">キーが表示されるのはこの一度だけ</span>なので、すぐに相棒の設定画面へ貼り付けてください。
-        <!-- IMG: console-createkey （Create Key を押した直後、キーが表示された画面のスクショ。キー本体は隠す） -->
+      <li><span class="t">「APIキーで続ける」を押す。</span><br>「ID連携を使用すれば、APIキーは不要です」という案内が出たら、下の「APIキーで続ける」を押します。ID連携は企業向けの仕組みなので使いません。
+        <div class="shot"><img src="assets/img/03_console-idfed-dialog.png" alt="ID連携の案内。下の「APIキーで続ける」を赤枠で示している" loading="lazy" width="1226" height="1024"></div>
       </li>
-      <li><span class="t">クレジットを入れる（初めての方）。</span><br>「Billing（お支払い）」から少額（5 ドル程度）のクレジットを入れておくと、すぐに会話できます。
-        <!-- IMG: console-billing （Billing のクレジット購入画面のスクショ） -->
+      <li><span class="t">名前・有効期限・スコープを決めて「キーを作成」。</span><br>名前を入れます（例：aibuddy）。有効期限は初期値が 30 日なので、<span class="emph">選べる中でいちばん長いもの</span>に変えます（期限が切れると「返事が来ない」状態になります）。スコープの欄を押して「デフォルトワークスペース」を選ぶと「キーを作成」が押せるようになります。
+        <div class="shot"><img src="assets/img/04_console-createkey-scope.png" alt="APIキーを作成のダイアログ。名前・有効期限・スコープの欄。スコープの欄を赤枠で示している" loading="lazy" width="1272" height="1166"></div>
+      </li>
+      <li><span class="t">「キーをコピー」を押し、すぐ相棒の設定画面に貼る。</span><br>「APIキーを保存」の画面で「キーをコピー」を押します。<span class="emph">この画面を閉じると二度と表示されない</span>ので、すぐにキットの設定画面の「Claude APIキー」欄へ貼り付けてください。
+        <div class="shot"><img src="assets/img/05_console-key-shown.png" alt="APIキーを保存の画面。キーの文字列は塗りつぶしてある。「キーをコピー」を赤枠で示している" loading="lazy" width="1268" height="750"></div>
+      </li>
+      <li><span class="t">「請求」で支払い方法を追加し、クレジットを入れる。</span><br>左メニューの「請求」を開き、「支払い方法を追加」を済ませてから、「クレジットを購入」で少額（5 ドル程度）を入れます。自動チャージは切っておくと、使いすぎの心配がありません。
+        <div class="shot"><img src="assets/img/06_console-billing.png" alt="請求の画面。「クレジットを購入」と「支払い方法を追加」を赤枠で示している" loading="lazy" width="1600" height="920"></div>
       </li>
     </ol>
-    <p class="note">キーは他人に見せないでください。相棒の設定画面以外には貼らないでください。もし他人に知られたと思ったら、Console の「API Keys」でそのキーを削除し、新しく作り直せば大丈夫です。</p>
+    <p class="note">キーは他人に見せないでください。相棒の設定画面以外には貼らないでください。もし他人に知られたと思ったら、Console の「APIキー」一覧で右端の「⋮」からそのキーを削除し、新しく作り直せば大丈夫です。</p>
 
     <h3>2. 相棒の使い方</h3>
     <ol class="steps">
@@ -257,7 +263,7 @@
     <h3>4. うまくいかないとき</h3>
     <dl class="trouble">
       <dt>返事が来ない</dt>
-      <dd>⚙ を開き、API キーが正しく貼れているか確認してください。キーは「sk-ant-」で始まります。Console のクレジット残高が 0 になっていないかも確認してください。</dd>
+      <dd>⚙ を開き、API キーが正しく貼れているか確認してください。キーは「sk-ant-」で始まります。Console のクレジット残高が 0 になっていないか、キーの有効期限が切れていないか（APIキー一覧の「有効期限」列）も確認してください。</dd>
       <dt>読み上げが鳴らない</dt>
       <dd>Mac の方は Safari で開いてください。⚙ の「🔊 テスト」で鳴るかどうかを確かめられます。鳴らないときはボタンの横に理由が出ます。</dd>
       <dt>マイクが反応しない</dt>
