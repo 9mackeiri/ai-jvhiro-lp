@@ -3,7 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI相棒スターターキット</title>
+<meta name="robots" content="noindex">
+<title>AI相棒（スターターキット）</title>
+<meta name="description" content="自分で名前を付けた相棒と、文字か声で会話できます。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="50代からのAI相棒｜ひろき">
+<meta property="og:title" content="AI相棒（スターターキット）">
+<meta property="og:description" content="自分で名前を付けた相棒と、文字か声で会話できます。">
+<meta property="og:url" content="https://9mackeiri.github.io/ai-jvhiro-lp/kit/app/">
+<meta property="og:image" content="https://9mackeiri.github.io/ai-jvhiro-lp/assets/ogp.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI相棒（スターターキット）">
+<meta name="twitter:description" content="自分で名前を付けた相棒と、文字か声で会話できます。">
+<meta name="twitter:image" content="https://9mackeiri.github.io/ai-jvhiro-lp/assets/ogp.jpg">
+<link rel="icon" type="image/jpeg" href="../../assets/icon-480.jpg">
 <style>
   /* ===== 配色（LPと同じ差し色。背景は暗く） ===== */
   :root {
@@ -442,9 +458,9 @@
     rec.onend = () => { if (listening) stopListen(true); };
 
     // マイクの許可は最初の1回だけ取り、ストリームを保持しておく。
-    // file:// で開いたページは Chrome が許可を保存しないため、認識を始めるたびに
-    // 許可ダイアログが出る。取得済みのストリームを持ち続ければ、同じページを
-    // 開いている間は再要求されない（ページを開き直すと、もう一度だけ聞かれる）。
+    // https（GitHub Pages）では Chrome が許可を保存するので初回だけ聞かれる。
+    // file:// で開いた場合は許可が保存されないが、取得済みのストリームを持ち続ければ
+    // 同じページを開いている間は再要求されない（害はないので残している）。
     let micStream = null, micAsking = false;
     const ensureMic = async () => {
       if (micStream && micStream.active) return true;
