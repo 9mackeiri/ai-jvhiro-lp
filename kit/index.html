@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>AI相棒スターターキット｜受け取りページ</title>
+<meta name="description" content="自分で名前を付けて声で会話できるAI相棒スターターキット。読み物PDF・相棒本体・設定ファイルの見本・使い方を、このページから受け取れます。">
+
+<!-- OGP（SNSでリンクを貼ったときの見出し・説明・画像。画像はLPと同じ） -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="50代からのAI相棒｜ひろき">
+<meta property="og:title" content="自分で名前を付けて声で会話できるAI相棒スターターキット">
+<meta property="og:description" content="50代・非エンジニアのひろきが作った、リンクを開くだけで動くスターターキット。読み物PDF・相棒本体・設定ファイルの見本・使い方をまとめて受け取れます。">
+<meta property="og:url" content="https://9mackeiri.github.io/ai-jvhiro-lp/kit/">
+<meta property="og:image" content="https://9mackeiri.github.io/ai-jvhiro-lp/assets/ogp.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="自分で名前を付けて声で会話できるAI相棒スターターキット">
+<meta name="twitter:description" content="50代・非エンジニアのひろきが作った、リンクを開くだけで動くスターターキット。">
+<meta name="twitter:image" content="https://9mackeiri.github.io/ai-jvhiro-lp/assets/ogp.jpg">
+<link rel="icon" type="image/jpeg" href="../assets/icon-480.jpg">
+
+<style>
+  /* ===== 配色・基本設定（LPと同じ） ===== */
+  :root {
+    --text: #1f2937;
+    --text-sub: #4b5563;
+    --heading: #0f172a;
+    --accent: #0284c7;
+    --accent-dark: #0369a1;
+    --accent-soft: #e0f2fe;
+    --bg: #ffffff;
+    --bg-alt: #f8fafc;
+    --line: #e2e8f0;
+    --warn-bg: #fffbeb;
+    --warn-line: #fcd34d;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", "Meiryo", system-ui, -apple-system, sans-serif;
+    font-size: 18px; line-height: 1.9; letter-spacing: 0.02em; overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { max-width: 100%; height: auto; display: block; }
+  a { color: var(--accent); }
+  p { margin: 0 0 1.1em; }
+  h1, h2, h3 { color: var(--heading); line-height: 1.5; margin: 0 0 0.8em; font-weight: 700; }
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.45rem; }
+  h3 { font-size: 1.15rem; }
+  .wrap { width: 100%; max-width: 680px; margin: 0 auto; padding: 0 20px; }
+  section { padding: 52px 0; }
+  section.alt { background: var(--bg-alt); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .sec-title { position: relative; padding-bottom: 12px; margin-bottom: 1.2em; }
+  .sec-title::after { content: ""; position: absolute; left: 0; bottom: 0; width: 48px; height: 4px; border-radius: 2px; background: var(--accent); }
+  .note { font-size: 0.95rem; color: var(--text-sub); }
+  .emph { font-weight: 700; color: var(--heading); }
+
+  /* ===== ファーストビュー ===== */
+  .hero { padding: 44px 0 48px; background: linear-gradient(180deg, var(--accent-soft) 0%, #ffffff 100%); }
+  .hero .wrap { text-align: center; }
+  .hero .kicker { display: inline-block; background: var(--accent); color: #fff; font-size: 0.85rem; font-weight: 700; padding: 3px 14px; border-radius: 999px; margin-bottom: 14px; }
+  .hero h1 { margin: 0 0 16px; }
+  .hero h1 .em { color: var(--accent); }
+  .hero .lead { font-size: 1.05rem; color: var(--text-sub); margin-bottom: 26px; }
+
+  /* ===== ボタン ===== */
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; max-width: 520px; margin: 0 auto;
+    min-height: 56px; padding: 14px 22px;
+    font-size: 1.05rem; font-weight: 700; line-height: 1.4; text-decoration: none;
+    border-radius: 999px; border: 2px solid var(--accent); color: var(--accent); background: #fff;
+    transition: background .15s, transform .15s;
+  }
+  .btn:hover, .btn:focus-visible { background: var(--accent-soft); transform: translateY(-1px); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary {
+    min-height: 64px; font-size: 1.15rem; color: #fff; background: var(--accent); border-color: var(--accent);
+    box-shadow: 0 6px 18px rgba(2,132,199,.32);
+  }
+  .btn.primary:hover, .btn.primary:focus-visible { background: var(--accent-dark); border-color: var(--accent-dark); }
+  .btn-note { text-align: center; font-size: 0.88rem; color: var(--text-sub); margin: 10px 0 0; }
+  .cta-block { margin: 28px 0 0; }
+
+  /* ===== 受け取れるもの（カード） ===== */
+  .cards { display: grid; grid-template-columns: 1fr; gap: 16px; margin: 0 0 1em; }
+  .card { background: #fff; border: 2px solid var(--line); border-radius: var(--radius); padding: 20px 20px 18px; display: flex; flex-direction: column; }
+  .card.main { border-color: var(--accent); }
+  .card .num { display: inline-block; background: var(--accent); color: #fff; font-size: 0.85rem; font-weight: 700; padding: 2px 12px; border-radius: 999px; margin-bottom: 10px; align-self: flex-start; }
+  .card h3 { margin-bottom: 0.4em; }
+  .card p { font-size: 0.98rem; color: var(--text-sub); margin-bottom: 1em; flex: 1 1 auto; }
+  .card .btn { max-width: none; min-height: 52px; font-size: 1rem; }
+
+  /* ===== 確認事項 ===== */
+  .check { background: var(--warn-bg); border: 2px solid var(--warn-line); border-radius: var(--radius); padding: 20px 20px 8px; }
+  ul.list { list-style: none; padding: 0; margin: 0 0 1.2em; }
+  ul.list li { position: relative; padding-left: 1.4em; margin-bottom: 0.9em; }
+  ul.list li::before { content: ""; position: absolute; left: 0; top: 0.75em; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+
+  /* ===== 手順 ===== */
+  ol.steps { list-style: none; counter-reset: n; padding: 0; margin: 0 0 1.4em; }
+  ol.steps li {
+    counter-increment: n; position: relative; padding: 14px 16px 14px 62px; margin-bottom: 10px;
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius); color: var(--text);
+  }
+  ol.steps li .t { font-weight: 700; color: var(--heading); }
+  ol.steps li::before {
+    content: counter(n); position: absolute; left: 16px; top: 14px;
+    width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center; font-weight: 700;
+  }
+  .shot { margin: 8px 0 14px; }
+  .shot img { border: 1px solid var(--line); border-radius: 10px; }
+  .howto h3 { margin-top: 1.6em; padding-top: 1.2em; border-top: 1px solid var(--line); }
+  .howto h3:first-of-type { margin-top: 0; padding-top: 0; border-top: 0; }
+  .trouble dt { font-weight: 700; color: var(--heading); margin-top: 0.9em; }
+  .trouble dd { margin: 0.2em 0 0; color: var(--text); }
+  code { font-family: Menlo, Consolas, monospace; font-size: 0.92em; background: var(--bg-alt); padding: 1px 6px; border-radius: 6px; }
+
+  /* ===== 質問 ===== */
+  .contact { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .contact a { display: block; text-align: center; padding: 14px 18px; border: 2px solid var(--line); border-radius: var(--radius); text-decoration: none; font-weight: 700; color: var(--heading); background: #fff; }
+  .contact a:hover { border-color: var(--accent); }
+
+  footer { padding: 32px 0 48px; text-align: center; font-size: 0.9rem; color: var(--text-sub); border-top: 1px solid var(--line); }
+  footer p { margin: 0 0 6px; }
+
+  @media (min-width: 700px) {
+    body { font-size: 19px; }
+    h1 { font-size: 2.1rem; }
+    .hero h1 { font-size: 2.05rem; }
+    h2 { font-size: 1.65rem; }
+    section { padding: 68px 0; }
+    .cards { grid-template-columns: 1fr 1fr; }
+    .contact { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     ファーストビュー
+     ============================================================ -->
+<header class="hero">
+  <div class="wrap">
+    <span class="kicker">スターターキット 受け取りページ</span>
+    <h1>自分で名前を付けて、<br><span class="em">声で会話できるAI相棒</span></h1>
+    <p class="lead">50代・非エンジニアのひろきが作った、リンクを開くだけで動くスターターキットです。</p>
+
+    <!-- 相棒を開くボタン①（最上部） -->
+    <a class="btn primary" href="app/">相棒を開く</a>
+    <p class="btn-note">Instagram の中で開いている方は、右上の「…」→「外部ブラウザで開く」を押してから使ってください。</p>
+  </div>
+</header>
+
+<!-- ============================================================
+     受け取れるもの
+     ============================================================ -->
+<section id="items">
+  <div class="wrap">
+    <h2 class="sec-title">受け取れるもの</h2>
+    <div class="cards">
+      <div class="card">
+        <span class="num">① 読み物</span>
+        <h3>PDF「AI相棒の作り方・最初の一歩」</h3>
+        <p>相棒を作る前に読む短い読み物です。何を用意して、どこから手をつけるかを書いています。</p>
+        <a class="btn" href="../assets/pdf/ai-first-step-458ebf8e.pdf" target="_blank" rel="noopener">PDFを開く</a>
+      </div>
+      <div class="card main">
+        <span class="num">② 本体</span>
+        <h3>相棒本体（ブラウザで動きます）</h3>
+        <p>名前と API キーを入れるだけで、文字か声で会話できます。インストールはいりません。</p>
+        <a class="btn primary" href="app/">相棒を開く</a>
+      </div>
+      <div class="card">
+        <span class="num">③ 見本</span>
+        <h3>設定ファイルの見本 3つ</h3>
+        <p>「仕事」「目標」「今の状況」を書く見本です。記入例と記入欄が入っています（ZIP・3ファイル）。</p>
+        <a class="btn" href="settings/settings.zip">見本を保存</a>
+      </div>
+      <div class="card">
+        <span class="num">④ 使い方</span>
+        <h3>使い方（このページの下）</h3>
+        <p>API キーの取り方から、話しかけ方、うまくいかないときの対処まで書いています。</p>
+        <a class="btn" href="#howto">使い方を読む</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     使用前に確認
+     ============================================================ -->
+<section id="before" class="alt">
+  <div class="wrap">
+    <h2 class="sec-title">使用前に確認してください</h2>
+    <div class="check">
+      <ul class="list">
+        <li><span class="emph">ブラウザ：</span>Mac の方は Safari、Windows の方は Chrome か Edge でお使いください。Mac の Chrome では、返事の読み上げが鳴らないことがあります。</li>
+        <li><span class="emph">Anthropic Console のアカウントと API キー：</span>Anthropic は Claude（クロード）という AI を作っている会社です。API キーは、相棒が Claude に問い合わせるための「合鍵」のような文字列です。取り方は下の使い方にあります。</li>
+        <li><span class="emph">料金：</span>API は使った分だけの有料です。このキットの会話なら 1 往復で 1 円未満、毎日使っても月に数百円程度が目安です。キット自体は無料です。</li>
+        <li><span class="emph">送られる情報：</span>会話の内容と設定文は、返事を作るために Anthropic に送られます。会社や取引先、人の実名は「A社」「B部長」のように伏せ字で書くことをおすすめします。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     使い方
+     ============================================================ -->
+<section id="howto" class="howto">
+  <div class="wrap">
+    <h2 class="sec-title">使い方</h2>
+
+    <h3>1. API キーの取り方</h3>
+    <ol class="steps">
+      <li><span class="t">Anthropic Console を開く。</span><br><a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">console.anthropic.com</a> でアカウントを作ってログインします。メールアドレスか Google アカウントで作れます。
+        <!-- IMG: console-login （Console のログイン／アカウント作成画面のスクショ） -->
+      </li>
+      <li><span class="t">「API Keys」を開く。</span><br>左のメニューから「API Keys」を選びます。
+        <!-- IMG: console-apikeys （API Keys の一覧画面のスクショ） -->
+      </li>
+      <li><span class="t">「Create Key」で作る。</span><br>名前（例：aibuddy）を付けて作成します。表示されたキー（sk-ant- で始まる長い文字列）をコピーします。<span class="emph">キーが表示されるのはこの一度だけ</span>なので、すぐに相棒の設定画面へ貼り付けてください。
+        <!-- IMG: console-createkey （Create Key を押した直後、キーが表示された画面のスクショ。キー本体は隠す） -->
+      </li>
+      <li><span class="t">クレジットを入れる（初めての方）。</span><br>「Billing（お支払い）」から少額（5 ドル程度）のクレジットを入れておくと、すぐに会話できます。
+        <!-- IMG: console-billing （Billing のクレジット購入画面のスクショ） -->
+      </li>
+    </ol>
+    <p class="note">キーは他人に見せないでください。相棒の設定画面以外には貼らないでください。もし他人に知られたと思ったら、Console の「API Keys」でそのキーを削除し、新しく作り直せば大丈夫です。</p>
+
+    <h3>2. 相棒の使い方</h3>
+    <ol class="steps">
+      <li><span class="t">「相棒を開く」を押す。</span><br>設定画面が出ます。</li>
+      <li><span class="t">名前・呼ばれ方・API キーを入れる。</span><br>相棒の名前は自分で決めます。候補を押しても、自由に入力しても構いません。</li>
+      <li><span class="t">設定ファイルを読み込む（任意）。</span><br>「📄 ファイルを選ぶ」から「仕事.txt」「目標.txt」「今の状況.txt」をまとめて選べます。読み込んだ内容は、そのまま画面の欄で書き直せます。</li>
+      <li><span class="t">「保存して会話をはじめる」を押す。</span><br>設定はこのパソコンのこのブラウザにだけ保存されます。あとから ⚙ で開き直せます。</li>
+      <li><span class="t">話しかける。</span><br>下の欄に文字を打って「送る」か Enter で送ります。声で話すときは 🎤 を押している間だけ聞き取り、指を離すと送られます。初回はブラウザからマイクの許可を聞かれるので「許可」を選んでください。返事は文字で表示され、読み上げもされます（⚙ の設定で切れます）。</li>
+    </ol>
+
+    <h3>3. 設定ファイルの書き方</h3>
+    <p>設定ファイルは 3 つあります。見本は上の「見本を保存」から取れます。</p>
+    <ul class="list">
+      <li><span class="emph">仕事.txt：</span>会社の規模、担当している業務、よく使う道具（Excel など）、パソコンの得意度。相棒が「あなたに合った言い方」をするための土台です。</li>
+      <li><span class="emph">目標.txt：</span>相棒と一緒にできるようになりたいこと（3 か月後・半年後）。相棒が「次の一歩」を示す目印になります。</li>
+      <li><span class="emph">今の状況.txt：</span>いま困っていること、今週やろうとしていること。状況が変わったら、このファイルだけ書き直せばよいです。</li>
+    </ul>
+    <p>各ファイルには、書き方の説明と記入例、あなたの記入欄が入っています。Mac の「テキストエディット」や Windows の「メモ帳」で開いて、記入欄を埋めて保存してください。読み込む手順は、⚙ → 「📄 ファイルを選ぶ」→ 3 つを選ぶ → 「保存して会話をはじめる」です。ファイルを使わず、画面の欄に直接書いても構いません。</p>
+
+    <h3>4. うまくいかないとき</h3>
+    <dl class="trouble">
+      <dt>返事が来ない</dt>
+      <dd>⚙ を開き、API キーが正しく貼れているか確認してください。キーは「sk-ant-」で始まります。Console のクレジット残高が 0 になっていないかも確認してください。</dd>
+      <dt>読み上げが鳴らない</dt>
+      <dd>Mac の方は Safari で開いてください。⚙ の「🔊 テスト」で鳴るかどうかを確かめられます。鳴らないときはボタンの横に理由が出ます。</dd>
+      <dt>マイクが反応しない</dt>
+      <dd>ブラウザのアドレスバー左のアイコンから、マイクの許可を「許可」にしてください。Mac では「システム設定 → プライバシーとセキュリティ → マイク」でブラウザが許可されているかも確認してください。</dd>
+      <dt>設定が消えた</dt>
+      <dd>ブラウザの履歴やサイトデータを消すと、設定も消えます。もう一度入れ直してください。</dd>
+    </dl>
+
+    <h3>5. 大事なこと</h3>
+    <ul class="list">
+      <li>会話の内容と設定文は、返事を作るために Anthropic に送られます。実名は「A社」「B部長」のように伏せ字で書くことをおすすめします。</li>
+      <li>API キーは、あなたのパソコンのこのブラウザにだけ保存されます。キットの作者にも送られません。</li>
+      <li>このキットは無料で配っています。API の料金だけは、各自の Anthropic アカウントでのお支払いになります。</li>
+    </ul>
+
+    <!-- 相棒を開くボタン②（使い方の直後） -->
+    <div class="cta-block">
+      <a class="btn primary" href="app/">相棒を開く</a>
+      <p class="btn-note">Instagram の中で開いている方は、右上の「…」→「外部ブラウザで開く」を押してから使ってください。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     質問
+     ============================================================ -->
+<section id="contact" class="alt">
+  <div class="wrap">
+    <h2 class="sec-title">質問は</h2>
+    <p>うまくいかないとき、わからないことがあるときは、Instagram の DM か公式 LINE へ気軽に送ってください。</p>
+    <div class="contact">
+      <a href="https://www.instagram.com/ai_jvhiro/" target="_blank" rel="noopener noreferrer">Instagram の DM（@ai_jvhiro）</a>
+      <a href="https://lin.ee/yuBrECZ5" target="_blank" rel="noopener noreferrer">公式 LINE で質問する</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>© 2026 50代からのAI相棒｜ひろき</p>
+  </div>
+</footer>
+
+</body>
+</html>
