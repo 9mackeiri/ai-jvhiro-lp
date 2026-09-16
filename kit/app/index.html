@@ -413,17 +413,21 @@
 
   // ===== 声（出力）：speechSynthesis =====
   const synth = window.speechSynthesis || null;
-  let jaVoice = null, voicesReady = false;   // 声の一覧は voiceschanged を待って取る（読み込み直後は空のことがある）
-  let lastSpeech = '';                        // 直近の結果（画面下に小さく出す）
+  let jaVoice = null, voicesReady = false;   // 表示用。実際に使う声は speak のたびに名前で引き直す（voiceschanged 後に別インスタンスになるため）
+  let lastSpeech = '', lastVoiceName = '';    // 直近の結果（画面下に小さく出す）
   let speakSeq = 0, holding = [];             // 読み上げ中の utterance を保持（GC されると onend が来ないことがある）
-  let recActive = false;                      // 音声認識が動いている間は読み上げを始めない（Chrome で無音になることがある）
+  let recActive = false;                      // 音声認識が動いている間は返事の読み上げを少し待つ（🔊 テストは待たない）
+  function findVoice() {
+    if (!synth) return null;
+    const vs = synth.getVoices() || [];
+    const ja = vs.filter(v => /^ja/i.test(v.lang));
+    return ja.find(v => /Kyoko|O-ren|Google 日本語|Hattori/i.test(v.name)) || ja[0] || null;
+  }
   function loadVoices() {
     if (!synth) return;
     const vs = synth.getVoices() || [];
     if (!vs.length) return;
-    voicesReady = true;
-    const ja = vs.filter(v => /^ja/i.test(v.lang));
-    jaVoice = ja.find(v => /Kyoko|O-ren|Google 日本語|Hattori/i.test(v.name)) || ja[0] || null;
+    voicesReady = true; jaVoice = findVoice();
     updateVoiceNote();
   }
   if (synth) {
@@ -442,50 +446,84 @@
   }
   function stopSpeaking() {
     speakSeq++; holding = [];
-    if (synth && (synth.speaking || synth.pending)) { try { synth.cancel(); } catch (e) {} }
+    if (synth && (synth.speaking || synth.pending || synth.paused)) { try { synth.cancel(); } catch (e) {} }
   }
-  // 読み上げる。force=true なら設定が OFF でも鳴らす（🔊 テスト用）。鳴らせたら true
-  function speak(text, force) {
+  // 読み上げる。opts.force: 設定が OFF でも鳴らす（🔊 テスト用）。opts.direct: 音声認識の終了を待たずすぐ始める。鳴らせたら true
+  function speak(text, opts) {
+    opts = opts || {};
     return new Promise((resolve) => {
-      if (!synth || (!state.voice && !force)) { setStatus('idle'); return resolve(false); }
+      if (!synth || (!state.voice && !opts.force)) { setStatus('idle'); return resolve(false); }
       const seq = ++speakSeq;
-      const wasBusy = synth.speaking || synth.pending;
-      if (wasBusy) { try { synth.cancel(); } catch (e) {} }
       const parts = splitSentences(text);
-      let i = 0, started = false, finished = false;
+      let i = 0, started = false, finished = false, fallback = false, watchdog = null, stall = null, keepalive = null;
+      const clearTimers = () => { clearTimeout(watchdog); clearTimeout(stall); clearInterval(keepalive); };
       const finish = (ok, why) => {
         if (seq !== speakSeq || finished) return;
-        finished = true; holding = []; lastSpeech = ok ? '鳴らしました' : (why || '読み上げできませんでした');
+        finished = true; clearTimers(); holding = [];
+        lastSpeech = why || (ok ? `鳴らしました（${lastVoiceName}）` : '読み上げできませんでした');
         updateVoiceNote(); setStatus('idle'); resolve(ok);
       };
-      const next = () => {
-        if (seq !== speakSeq) return;                         // 途中で止められた
-        if (i >= parts.length) return finish(started, '読み上げが始まりませんでした。⚙ の「🔊 テスト」を押してみてください。');
-        const u = new SpeechSynthesisUtterance(parts[i++]);
+      const speakPart = () => {
+        if (seq !== speakSeq || finished) return clearTimers();
+        if (i >= parts.length) return finish(started, started ? '' : '読み上げが始まりませんでした。文字でご利用ください。');
+        const u = new SpeechSynthesisUtterance(parts[i]);
         u.lang = 'ja-JP'; u.rate = 1.0; u.pitch = 1.0; u.volume = 1.0;
-        if (jaVoice) u.voice = jaVoice;                       // 日本語の声が無ければ既定の声で鳴らす
-        u.onstart = () => { if (seq !== speakSeq || finished) return; started = true; setStatus('speaking'); lastSpeech = '読み上げ中'; updateVoiceNote(); };
-        u.onend = () => { if (seq === speakSeq) next(); };
+        const v = fallback ? null : findVoice();               // 声は毎回いまの一覧から名前で引く。再試行時は既定の声
+        if (v) u.voice = v;
+        lastVoiceName = v ? v.name : '既定の声';
+        u.onstart = () => {
+          if (seq !== speakSeq || finished) return;
+          started = true; clearTimeout(watchdog);
+          setStatus('speaking'); lastSpeech = `読み上げ中（${lastVoiceName}）`; updateVoiceNote();
+        };
+        u.onend = () => { if (seq !== speakSeq || finished) return; clearTimeout(stall); i++; speakPart(); };
         u.onerror = (ev) => {
-          if (seq !== speakSeq) return;
+          if (seq !== speakSeq || finished) return;
           const why = ev && ev.error;
           if (why === 'interrupted' || why === 'canceled') return;   // 自分で止めたとき
-          finish(false, `読み上げできませんでした（${why || '不明'}）。文字でご利用ください。`);
+          finish(false, `エラー：${why || '不明'}。文字でご利用ください。`);
         };
         holding.push(u);
-        try { synth.speak(u); } catch (e) { finish(false, '読み上げできませんでした。文字でご利用ください。'); }
+        try {
+          if (synth.paused) synth.resume();                      // 止まったままの合成エンジンを起こす
+          synth.speak(u);
+          synth.resume();                                        // Chrome は speak 直後に resume しないと始まらないことがある
+        } catch (e) { return finish(false, '読み上げを呼び出せませんでした。文字でご利用ください。'); }
+        if (!started) {
+          // 3 秒たっても onstart が来なければ止める。声を指定していた場合は、既定の声で 1 回だけ再試行
+          clearTimeout(watchdog);
+          watchdog = setTimeout(() => {
+            if (seq !== speakSeq || finished || started) return;
+            try { synth.cancel(); } catch (e) {}
+            if (!fallback && v) {
+              fallback = true; lastSpeech = `${v.name} で始まらないため既定の声で再試行中`; updateVoiceNote();
+              setTimeout(speakPart, 250);
+            } else {
+              finish(false, '3秒待っても開始できませんでした。Chrome を再起動すると直ることがあります。文字でご利用ください。');
+            }
+          }, 3000);
+        }
+        // 途中で止まったまま onend が来ない場合の保険（長さに応じて待つ）
+        clearTimeout(stall);
+        stall = setTimeout(() => {
+          if (seq !== speakSeq || finished) return;
+          try { synth.cancel(); } catch (e) {}
+          finish(started, '途中で止まりました（Chrome の既知の不具合）。もう一度送ると続きから読めます。');
+        }, 6000 + parts[i].length * 500);
       };
-      setStatus('speaking');
-      // cancel() の直後に speak() すると Chrome が無音になることがあるため、少し待ってから始める。
-      // 音声認識がまだ終わっていなければ、終わるのを最大 2 秒待つ
+      setStatus('speaking'); lastSpeech = '開始待ち'; updateVoiceNote();
+      // 合成エンジンが止まったまま speaking のことがあるので、動いている扱いなら一度 cancel して仕切り直す
+      const wasBusy = synth.speaking || synth.pending || synth.paused;
+      if (wasBusy) { try { synth.cancel(); synth.resume(); } catch (e) {} }
+      // 読み上げ中は数秒ごとに resume() を呼んで、途中で止まるのを防ぐ（止まっていなければ何もしない）
+      keepalive = setInterval(() => { if (seq !== speakSeq || finished) return clearInterval(keepalive); try { synth.resume(); } catch (e) {} }, 4000);
       const t0 = Date.now();
-      const begin = () => { if (seq !== speakSeq) return; if (recActive && Date.now() - t0 < 2000) return setTimeout(begin, 100); next(); };
+      const begin = () => {
+        if (seq !== speakSeq) return clearTimers();
+        if (!opts.direct && recActive && Date.now() - t0 < 2000) return setTimeout(begin, 100);   // 認識が終わるのを最大 2 秒待つ
+        speakPart();
+      };
       setTimeout(begin, wasBusy ? 150 : 0);
-      // 何も始まらないまま時間が経った場合の保険
-      setTimeout(() => {
-        if (seq !== speakSeq || started || synth.speaking || synth.pending) return;
-        finish(false, '読み上げが始まりませんでした。⚙ の「🔊 テスト」を押してみてください。');
-      }, 5000);
     });
   }
   function updateVoiceNote() {
@@ -493,14 +531,16 @@
     if (!state.voice) { el.voiceNote.textContent = '🔇 読み上げ OFF（⚙で切替）'; return; }
     el.voiceNote.textContent = `🔊 読み上げ ON（⚙で切替）・${voiceLabel()}` + (lastSpeech ? `・${lastSpeech}` : '');
   }
-  // 設定画面の 🔊 テスト：押した操作の中で読み上げる（初回の動作確認）
+  // 設定画面の 🔊 テスト：クリックから直接 speak() する（マイク・認識の待ち処理は通さない）
   el.voiceTest.addEventListener('click', async () => {
     if (!synth) { el.voiceTestNote.textContent = 'このブラウザは読み上げに対応していません。'; return; }
     const name = el.fName.value.trim() || state.name || '相棒';
-    el.voiceTestNote.textContent = '読み上げています…';
-    const ok = await speak(`こんにちは、${name}です。`, true);
+    el.voiceTestNote.textContent = '読み上げています…（3秒以内に始まらなければ表示が変わります）';
+    const timer = setInterval(() => { if (lastSpeech) el.voiceTestNote.textContent = lastSpeech; }, 300);
+    const ok = await speak(`こんにちは、${name}です。`, { force: true, direct: true });
+    clearInterval(timer);
     el.voiceTestNote.textContent = ok
-      ? `鳴らしました（${voiceLabel()}）。聞こえなければ Mac の音量とミュートを確認してください。`
+      ? `鳴らしました（${lastVoiceName}）。聞こえなければ Mac の音量とミュートを確認してください。`
       : (lastSpeech || '読み上げできませんでした。文字でご利用ください。');
   });
 
