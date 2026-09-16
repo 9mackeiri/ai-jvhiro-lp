@@ -15,10 +15,12 @@ highlight.txt（要点モード）の書き方: 1 行 1 テロップ、「開始
   q … 質問。白・大きめ・黒縁。画面中央やや上
   a … 答えの要点。薄いシアン。画面下の帯
   n … 数字の強調。白・特大・黒縁。画面中央やや下
+  文字の中の *…* は強調（n と同じ白で描く。a の中で一語だけ目立たせたいとき）
   例:
     0.0-4.5 | q | 今日の売上は？
     9.8-18.4 | n | 149,947円
     9.8-18.4 | a | 乳酸菌サプリ24個・病院から1件
+    43.1-50.5 | a | コメントに『*最初の一歩*』
 """
 import argparse
 import math
@@ -68,6 +70,9 @@ TITLE_BOX_RADIUS = 24
 
 WHITE = (255, 255, 255, 255)
 CYAN = (190, 240, 255, 255)
+EMPH_COLOR = WHITE                        # *…* で囲んだ強調部分の色（n と同じ白）
+EMPH_ON, EMPH_OFF = "\ue000", "\ue001"    # 強調の範囲を示す内部用の印（描画時に取り除く）
+EMPH_RE = re.compile(r"\*([^*\n]+)\*")
 
 
 # ---------- 入力の読み込み ----------
@@ -131,9 +136,29 @@ def parse_highlight(path):
         if end <= start or not parts[2]:
             print(f"警告 {ln} 行目: 時刻の順序か文字が不正です: {line!r}", file=sys.stderr)
             continue
-        events.append((start, end, kind, parts[2]))
+        events.append((start, end, kind, EMPH_RE.sub(EMPH_ON + r"\1" + EMPH_OFF, parts[2])))
     events.sort(key=lambda e: e[0])
     return events
+
+
+def _plain(text):
+    """強調の印を取り除いた、実際に描かれる文字列。"""
+    return text.replace(EMPH_ON, "").replace(EMPH_OFF, "")
+
+
+def _segments(line):
+    """1 行を [(文字列, 強調か)] に分ける。"""
+    out, emph, buf = [], False, ""
+    for ch in line:
+        if ch in (EMPH_ON, EMPH_OFF):
+            if buf:
+                out.append((buf, emph))
+            buf, emph = "", ch == EMPH_ON
+        else:
+            buf += ch
+    if buf:
+        out.append((buf, emph))
+    return out
 
 
 # ---------- 文字の折り返し ----------
@@ -158,11 +183,11 @@ def wrap_px(text, font, max_width):
     out = []
     for para in text.split("\n"):
         para = para.strip()
-        while para and font.getlength(para) > max_width:
+        while para and font.getlength(_plain(para)) > max_width:
             spans = _protected_spans(para)
             # max_width に収まる最大の文字数
             fit = 1
-            while fit < len(para) and font.getlength(para[:fit + 1]) <= max_width:
+            while fit < len(para) and font.getlength(_plain(para[:fit + 1])) <= max_width:
                 fit += 1
             # (1) 収まる範囲で最も後ろにある「折ってよい文字」の直後
             cut = 0
@@ -175,18 +200,30 @@ def wrap_px(text, font, max_width):
                 cut = fit
                 while cut > 1 and _inside_protected(cut, spans):
                     cut -= 1
-            while cut < len(para) and para[cut] in KINSOKU_TAIL:  # 行頭の句読点を避ける
-                cut += 1
-            out.append(para[:cut].rstrip())
-            para = para[cut:].lstrip()
+            while cut < len(para):  # 行頭の句読点を避ける（強調の印を挟んでいても見る）
+                j = cut
+                while j < len(para) and para[j] in (EMPH_ON, EMPH_OFF):
+                    j += 1
+                if j < len(para) and para[j] in KINSOKU_TAIL:
+                    cut = j + 1
+                else:
+                    break
+            head, para = para[:cut].rstrip(), para[cut:].lstrip()
+            # 強調の印が行の切れ目に来たら、印だけを次の行へ送る（前の行の末尾で強調を開いたままにしない）
+            if head.endswith(EMPH_ON):
+                head, para = head[:-1].rstrip(), EMPH_ON + para
+            # 行をまたぐ強調は、前の行で閉じて次の行で開き直す
+            if head.count(EMPH_ON) > head.count(EMPH_OFF):
+                head, para = head + EMPH_OFF, EMPH_ON + para
+            out.append(head)
         if para:
             out.append(para)
-    return out
+    return [l for l in out if _plain(l)]
 
 
 # ---------- 描画 ----------
 def measure(draw, lines, font, outline_w):
-    sizes = [draw.textbbox((0, 0), l, font=font, stroke_width=outline_w) for l in lines]
+    sizes = [draw.textbbox((0, 0), _plain(l), font=font, stroke_width=outline_w) for l in lines]
     widths = [b[2] - b[0] for b in sizes]
     line_h = max(b[3] - b[1] for b in sizes)
     return widths, line_h
@@ -195,7 +232,20 @@ def measure(draw, lines, font, outline_w):
 def draw_lines(draw, lines, font, color, outline_w, top_y, line_h, widths):
     y = top_y
     for l, w in zip(lines, widths):
-        draw.text(((W - w) // 2, y), l, font=font, fill=color, stroke_width=outline_w, stroke_fill=OUTLINE, anchor="la")
+        x = (W - w) // 2
+        segs = _segments(l)
+        if len(segs) <= 1 and not (segs and segs[0][1]):
+            draw.text((x, y), _plain(l), font=font, fill=color, stroke_width=outline_w, stroke_fill=OUTLINE, anchor="la")
+        else:
+            # 強調を含む行: 先に縁取りだけを全部描き、その上に文字の色を塗る（区切り目で縁が文字に被らないように）
+            for pass_fill in (False, True):
+                sx = x
+                for seg, emph in segs:
+                    if pass_fill:
+                        draw.text((sx, y), seg, font=font, fill=EMPH_COLOR if emph else color, anchor="la")
+                    else:
+                        draw.text((sx, y), seg, font=font, fill=OUTLINE, stroke_width=outline_w, stroke_fill=OUTLINE, anchor="la")
+                    sx += font.getlength(seg)
         y += line_h + LINE_GAP
 
 
