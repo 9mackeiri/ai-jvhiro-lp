@@ -19,6 +19,9 @@
 #   3. 9:16 に切り出し → 字幕を重ねる → 音量を標準化 → H.264/AAC で書き出し
 #      → 「動画/出力/<名前>_reel.mp4」（前回の出力は「出力/前回/」に 1 世代だけ残す）
 #      確認用の静止画3枚を「動画/出力/確認用/<名前>/」に置く
+#   4. カバー画像（Instagram の一覧に出るサムネイル）を作る（video/make_cover.py）
+#      見出しは「動画/字幕/<名前>.cover.txt」（1 行目 Day 番号、2〜3 行目 見出し）から読む。無ければ「見出し未設定」で作って進む
+#      → 「動画/カバー/<名前>_cover.png」。一覧で見える範囲（4:5）だけの確認用は「出力/確認用/<名前>/<名前>_cover_4x5.png」
 #
 # テロップを直すとき: 字幕/<名前>.highlight.txt（要点）か 字幕/<名前>.srt（全文）を編集して、
 #   --skip-transcribe を付けて同じコマンドを実行する
@@ -75,6 +78,9 @@ INPUT="$IN_DIR/$INPUT_NAME"
 NAME="${INPUT_NAME%.*}"
 SRT="$SRT_DIR/$NAME.srt"
 HL="$SRT_DIR/$NAME.highlight.txt"
+COVER_TXT="$SRT_DIR/$NAME.cover.txt"
+COVER_DIR="$BASE/カバー"
+COVER="$COVER_DIR/${NAME}_cover.png"
 OUT="$OUT_DIR/${NAME}_reel.mp4"
 STILL_DIR="$STILL_BASE/$NAME"   # 確認用の静止画は動画ごとのサブフォルダに入れる
 
@@ -124,7 +130,7 @@ T0=$(date +%s)
 
 # ---------- 1. 文字起こし ----------
 if [ "$SKIP_TRANSCRIBE" -eq 0 ]; then
-  echo "[1/3] 文字起こし（whisper.cpp / large-v3-turbo）..."
+  echo "[1/4] 文字起こし（whisper.cpp / large-v3-turbo）..."
   ffmpeg -y -v error -i "$INPUT" -map 0:a:0 -ac 1 -ar 16000 -c:a pcm_s16le "$WORK/audio.wav"
   whisper-cli -m "$MODEL" -l ja -f "$WORK/audio.wav" -t 8 -bs 5 -ml 28 \
     --prompt "$WHISPER_PROMPT" -osrt -of "$WORK/sub" -np >"$WORK/whisper.log" 2>&1 \
@@ -137,7 +143,7 @@ if [ "$SKIP_TRANSCRIBE" -eq 0 ]; then
   cp "$WORK/sub.srt" "$SRT"
   echo "  字幕を保存: $SRT"
 else
-  echo "[1/3] 文字起こしを省略（--skip-transcribe）。字幕: $SRT"
+  echo "[1/4] 文字起こしを省略（--skip-transcribe）。字幕: $SRT"
   [ -s "$SRT" ] || { echo "字幕ファイルがありません: $SRT" >&2; exit 1; }
 fi
 T1=$(date +%s)
@@ -172,17 +178,17 @@ if [ "$MODE" = "highlight" ]; then
     echo "  （全文字幕にしたいときは --mode full）"
     exit 0
   fi
-  echo "[2/3] 要点テロップと見出しの画像を作成（$HL）..."
+  echo "[2/4] 要点テロップと見出しの画像を作成（$HL）..."
   python3 "$REPO/video/render_overlays.py" --highlight "$HL" --duration "$DURATION" \
     --out-dir "$WORK/ov" --font-bold "$FONT_BOLD" "${TITLE_ARGS[@]}"
 else
-  echo "[2/3] 全文字幕と見出しの画像を作成（$SRT）..."
+  echo "[2/4] 全文字幕と見出しの画像を作成（$SRT）..."
   python3 "$REPO/video/render_overlays.py" --srt "$SRT" --duration "$DURATION" \
     --out-dir "$WORK/ov" --font-bold "$FONT_BOLD" "${TITLE_ARGS[@]}"
 fi
 
 # ---------- 3. 切り出し・合成・書き出し ----------
-echo "[3/3] 9:16 に切り出して字幕を重ね、音量を整えて書き出し（--crop $CROP）..."
+echo "[3/4] 9:16 に切り出して字幕を重ね、音量を整えて書き出し（--crop $CROP）..."
 # 音量の標準化は 2 パス（1 回目で測り、2 回目でその値を使って正確に -14 LUFS に合わせる）
 LN_TARGET="I=-14:TP=-1.5:LRA=11"
 ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of csv=p=0 "$INPUT" | grep -q audio \
@@ -226,9 +232,18 @@ for pair in "冒頭:1" "中盤:$(python3 -c "print(round($DURATION/2,2))")" "終
   ffmpeg -y -v error -ss "$at" -i "$OUT" -frames:v 1 -q:v 3 "$STILL_DIR/${NAME}_${label}.jpg"
 done
 
+# ---------- 4. カバー画像 ----------
+echo "[4/4] カバー画像を作成（見出し: $COVER_TXT）..."
+mkdir -p "$COVER_DIR"
+[ -s "$COVER_TXT" ] || echo "  $COVER_TXT がありません。「見出し未設定」で作ります（Day 番号と見出し 2 行を書いて --skip-transcribe で再実行すると差し替わります）"
+COVER_ARGS=(--input "$INPUT" --crop "$CROP" --cover-txt "$COVER_TXT" --font-bold "$FONT_BOLD" --out "$COVER" --preview-out "$STILL_DIR/${NAME}_cover_4x5.png")
+[ "$MODE" = "highlight" ] && COVER_ARGS+=(--highlight "$HL")
+python3 "$REPO/video/make_cover.py" "${COVER_ARGS[@]}" || { echo "  カバー画像の作成に失敗しました（動画はできています）" >&2; COVER=""; }
+
 echo
 echo "完了: $OUT ($(du -h "$OUT" | cut -f1))"
 echo "字幕:  $SRT"
 [ "$MODE" = "highlight" ] && echo "要点:  $HL"
 echo "静止画: $STILL_DIR/${NAME}_{冒頭,中盤,終盤}.jpg"
+[ -n "$COVER" ] && echo "カバー: $COVER（確認用 4:5: $STILL_DIR/${NAME}_cover_4x5.png）"
 echo "所要時間: 文字起こし $((T1-T0)) 秒 / 書き出し $((T2-T1)) 秒 / 合計 $((T2-T0)) 秒"

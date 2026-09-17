@@ -28,6 +28,8 @@ zsh video/make.sh IMG_8930.MOV --title "見出しの文言" --crop left
 | `字幕/<名前>.srt` | 文字起こしの字幕（木田が直せる） |
 | `出力/<名前>_reel.mp4` | 完成した縦型動画。Instagram／TikTok にそのまま上げられる（作り直すと前回分は `出力/前回/` に1世代だけ残る） |
 | `出力/確認用/<名前>/<名前>_冒頭.jpg` ほか | 冒頭・中盤・終盤の静止画（確認用）。動画ごとのサブフォルダに入る |
+| `カバー/<名前>_cover.png` | リールのカバー画像（1080×1920）。投稿時に「カバーを編集」で選ぶ。見出しは `字幕/<名前>.cover.txt` から読む（下の「カバー画像」参照） |
+| `出力/確認用/<名前>/<名前>_cover_4x5.png` | カバーのうち、プロフィールの一覧で見える範囲（中央 1080×1350）だけを切り抜いたもの。文字がはみ出していないかの確認用 |
 
 ## 字幕の直し方
 
@@ -103,3 +105,33 @@ zsh video/make.sh IMG_8930.MOV --title "見出しの文言" --crop left
   ```bash
   python3 video/q_align.py "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Cursor/インスタ投稿/動画/入力/IMG_8948.MOV" 0.0 10.0 "在庫と仕入れのタイミングは？"
   ```
+
+## カバー画像（`video/make_cover.py`）
+
+`make.sh` の最後に自動で作られる。Instagram のプロフィール一覧で「何の回か」がわかるように、動画の 1 コマを暗くした上に大きな見出しを載せる。
+
+- 上に「Day N」のバッジ（LP の差し色）、中央に見出し 2 行（1 行目 白・2 行目 薄いシアン）、下に小さく「50代・非エンジニアが自作したAI相棒」「コメント『最初の一歩』で無料PDF」
+- 文字はすべて中央の 1080×1350（4:5）に収めている。一覧ではその範囲だけが見える
+- 背景は `highlight.txt` の最初の `q`（質問）の中間時刻の 1 コマ（テロップを重ねる前の元動画から切り出す）
+
+### 見出しの書き方（`字幕/<名前>.cover.txt`）
+
+```
+Day 4
+100万超えの朝
+大口が1件入った日
+```
+
+1 行目が Day 番号（`4` だけでも可）、2〜3 行目が見出し（1 行 10〜13 文字。長いと自動で小さくなる）。`#` で始まる行はメモ。
+このファイルが無いときは「見出し未設定」のカバーを作って止まらずに進む。書いてから `--skip-transcribe` を付けて再実行すれば差し替わる。
+
+カバーだけ作り直したいときは単体でも使える（`--at 秒` で背景のコマを指定できる）：
+
+```bash
+python3 video/make_cover.py --input "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Cursor/インスタ投稿/動画/入力/IMG_8970.MOV" \
+  --cover-txt "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Cursor/インスタ投稿/動画/字幕/IMG_8970.cover.txt" \
+  --font-bold video/fonts/NotoSansJP-Bold.ttf --at 6.5 \
+  --out "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Cursor/インスタ投稿/動画/カバー/IMG_8970_cover.png"
+```
+
+見た目の数値（明度・文字サイズ・位置・色）は `video/make_cover.py` の先頭にまとめてある。
