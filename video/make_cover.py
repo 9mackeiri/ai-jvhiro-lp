@@ -44,7 +44,7 @@ OUTLINE = (0, 0, 0, 255)
 BADGE_FONT_SIZE = 130               # 「Day N」の文字サイズ（一覧では約 43px）
 BADGE_PAD_X, BADGE_PAD_Y = 44, 18
 BADGE_RADIUS = 34
-BADGE_TOP_RATIO = 0.09              # バッジの上端 = 4:5 範囲の上端から高さの 9%（= SAFE_TOP + 122）
+BADGE_TOP_RATIO = 0.055             # バッジの上端 = 4:5 範囲の上端から高さの 5.5%（= SAFE_TOP + 74）
 BADGE_TOP_Y = SAFE_TOP + round(SAFE_H * BADGE_TOP_RATIO)
 
 HEAD_FONT_MAX = 146                 # 見出しの最大サイズ。幅に収まるまで小さくする
