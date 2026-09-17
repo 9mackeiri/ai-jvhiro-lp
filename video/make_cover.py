@@ -10,6 +10,7 @@
   --crop        横動画のとき 9:16 に切る位置（left / center / right。既定 center）
   --cover-txt   見出しファイル。1 行目が Day 番号（「4」でも「Day 4」でも可）、2〜3 行目が見出し。# で始まる行は無視
   --day/--line1/--line2   ファイルの代わりに直接指定（両方あれば直接指定が優先）
+  --badge / --badge-text / --accent   バッジの色・バッジ文字の色（省略時は自動）・見出し 2 行目の色（例: --badge "#FFD400" --accent "#FFD400"）
   --preview-out 一覧で見える範囲（中央 1080×1350）だけを切り抜いた確認用 PNG の出力先
 
 できあがり: 1080×1920 の PNG。文字はすべて中央の 1080×1350（4:5）の範囲に収める（一覧ではそこだけが見える）
@@ -54,6 +55,23 @@ HEAD_SHADOW = (10, 10)              # 影のずれ（px）
 HEAD_SHADOW_BLUR = 14
 
 MISSING_TITLE = "見出し未設定"
+
+
+def parse_color(text, name):
+    """'#RRGGBB' / 'RRGGBB' / 'white' などを (r, g, b, 255) にする。"""
+    from PIL import ImageColor
+    try:
+        r, g, b = ImageColor.getrgb(text)[:3]
+    except ValueError:
+        die(f"{name} の色が読めません: {text}（例: #FFD400）")
+    return (r, g, b, 255)
+
+
+def auto_text_color(bg):
+    """背景色の明るさから、文字を黒にするか白にするか決める（明るい背景なら黒）。"""
+    r, g, b = bg[:3]
+    lum = 0.299 * r + 0.587 * g + 0.114 * b
+    return (0, 0, 0, 255) if lum > 160 else WHITE
 
 
 def die(msg):
@@ -166,7 +184,8 @@ def draw_shadow_layer(base, items):
     base.alpha_composite(layer)
 
 
-def render(bg, day, line1, line2, font_path):
+def render(bg, day, line1, line2, font_path, badge=ACCENT, badge_text=None, accent=CYAN):
+    """badge=バッジの色、badge_text=バッジ文字の色（None なら明るさで自動）、accent=見出し 2 行目の色"""
     img = bg.copy()
     draw = ImageDraw.Draw(img)
 
@@ -177,10 +196,10 @@ def render(bg, day, line1, line2, font_path):
         tw, th = text_size(bf, label)
         bw, bh = tw + BADGE_PAD_X * 2, BADGE_FONT_SIZE + BADGE_PAD_Y * 2
         bx, by = (W - bw) // 2, BADGE_TOP_Y
-        draw.rounded_rectangle((bx, by, bx + bw, by + bh), radius=BADGE_RADIUS, fill=ACCENT)
+        draw.rounded_rectangle((bx, by, bx + bw, by + bh), radius=BADGE_RADIUS, fill=badge)
         # 文字の縦位置は bbox の上端を差し引いて中央に
         l, t, r, b = bf.getbbox(label)
-        draw.text((bx + BADGE_PAD_X - l, by + (bh - (b - t)) // 2 - t), label, font=bf, fill=WHITE)
+        draw.text((bx + BADGE_PAD_X - l, by + (bh - (b - t)) // 2 - t), label, font=bf, fill=badge_text or auto_text_color(badge))
 
     # --- 中央: 見出し 2 行 ---
     lines = [s for s in (line1, line2) if s]
@@ -197,7 +216,7 @@ def render(bg, day, line1, line2, font_path):
         tw, _ = text_size(hf, s)
         l, t, r, b = hf.getbbox(s)
         x = (W - tw) // 2 - l
-        items.append(((x, y - t + (line_h - (b - t)) // 2), s, hf, HEAD_OUTLINE_W, CYAN if (i == 1) else WHITE))
+        items.append(((x, y - t + (line_h - (b - t)) // 2), s, hf, HEAD_OUTLINE_W, accent if (i == 1) else WHITE))
         y += line_h + HEAD_LINE_GAP
     draw_shadow_layer(img, [(xy, s, f, ow) for xy, s, f, ow, _ in items])
     draw = ImageDraw.Draw(img)
@@ -220,6 +239,9 @@ def main():
     ap.add_argument("--font-bold", required=True)
     ap.add_argument("--out", required=True, help="出力 PNG（1080×1920）")
     ap.add_argument("--preview-out", help="中央 1080×1350 を切り抜いた確認用 PNG")
+    ap.add_argument("--badge", default="#0284c7", help="Day バッジの色（既定 #0284c7 = LP の差し色）")
+    ap.add_argument("--badge-text", help="バッジ文字の色（省略時はバッジが明るければ黒、暗ければ白）")
+    ap.add_argument("--accent", default="#bef0ff", help="見出し 2 行目の色（既定 #bef0ff = 薄いシアン。1 行目は常に白）")
     a = ap.parse_args()
 
     if not a.input and not a.frame:
@@ -245,7 +267,10 @@ def main():
         src = grab_frame(a.input, at, a.crop)
         print(f"  背景: {os.path.basename(a.input)} の {at} 秒")
 
-    img = render(make_background(src), day, l1, l2, a.font_bold)
+    img = render(make_background(src), day, l1, l2, a.font_bold,
+                 badge=parse_color(a.badge, "--badge"),
+                 badge_text=parse_color(a.badge_text, "--badge-text") if a.badge_text else None,
+                 accent=parse_color(a.accent, "--accent"))
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     img.convert("RGB").save(a.out, "PNG", optimize=True)
     print(f"  カバー: {a.out}")

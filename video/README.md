@@ -134,4 +134,6 @@ python3 video/make_cover.py --input "$HOME/Library/Mobile Documents/com~apple~Cl
   --out "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Cursor/インスタ投稿/動画/カバー/IMG_8970_cover.png"
 ```
 
+色は引数で変えられる：`--badge "#FFD400"`（バッジの色）、`--badge-text "#000000"`（バッジ文字の色。省略時はバッジが明るければ黒、暗ければ白）、`--accent "#FFD400"`（見出し 2 行目の色。1 行目は常に白）。既定は LP の差し色の青バッジ＋白文字、2 行目は薄いシアン。
+
 見た目の数値（明度・文字サイズ・位置・色）は `video/make_cover.py` の先頭にまとめてある。
