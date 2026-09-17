@@ -9,11 +9,14 @@
 cd ~/dev/ai-jvhiro-lp
 zsh video/make.sh IMG_8930.MOV
 zsh video/make.sh IMG_8930.MOV --title "見出しの文言" --crop left
+zsh video/make.sh "'/Users/hiroki/Movies/IMG_9020.MOV'"   # 絶対パスでも可（Finder からドラッグした形をそのまま。クォート・file:// は自動で除く）
 ```
+
+Claude Code では `/telop`（動画のパスを貼る → 下書きを直す → 書き出し）と `/caption`（キャプション作成）のスラッシュコマンドで同じ流れを進められる（`.claude/commands/`）。
 
 | 引数 | 意味 |
 |---|---|
-| `<入力ファイル名>` | iCloud の `Cursor/インスタ投稿/動画/入力` に置いた動画のファイル名（.mov / .mp4） |
+| `<入力ファイル名>` | iCloud の `Cursor/インスタ投稿/動画/入力` に置いた動画のファイル名（.mov / .mp4）。動画の絶対パスでもよく、入力フォルダ以外にあっても動く（出力先はファイル名だけで決まり従来どおり） |
 | `--title "…"` | 冒頭に出す見出し。既定は「50代・非エンジニアが作ったAI相棒」（「非エンジニア」の後で改行）。`|` を入れるとそこで改行 |
 | `--crop left/center/right` | 横動画を 9:16 に切るときの位置（既定 center）。縦動画では影響しない |
 | `--skip-transcribe` | 文字起こしを省略し、字幕ファイルを直したあとの焼き込みだけやり直す |

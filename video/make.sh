@@ -7,7 +7,9 @@
 #   --end 秒: その時刻で動画を終える（末尾 0.5 秒は映像と音声をフェードアウト）。撮り終わりのブレなどを切るのに使う
 #   見出しが出ている間（--title-seconds 秒、既定 2）は q（質問）のテロップを出さず、消えた直後から出す
 #
-#   入力ファイル名は iCloud の「Cursor/インスタ投稿/動画/入力」に置いたファイル名（例: IMG_8930.MOV）
+#   入力は iCloud の「Cursor/インスタ投稿/動画/入力」に置いたファイル名（例: IMG_8930.MOV）か、動画の絶対パス
+#   （Finder からドラッグした形。前後のクォート・空白・file:// は取り除く）。絶対パスが入力フォルダ以外でも動き、
+#   出力先はファイル名だけを使って従来どおり（字幕/・出力/・カバー/）
 #
 # 流れ:
 #   1. 音声を取り出し、whisper.cpp（Mac 内・外部送信なし）で日本語の字幕 SRT を作る
@@ -52,8 +54,18 @@ usage() { sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
 INPUT_NAME="$1"; shift
 ORIG_OPTS=()   # 下書き後の再実行案内に引き継ぐオプション（--skip-transcribe 以外）
 for arg in "$@"; do [ "$arg" != "--skip-transcribe" ] && ORIG_OPTS+=("$arg"); done
+# 前後の空白・クォート・file:// を取り除く（Finder からドラッグ／コピーした形をそのまま受け付ける）
+INPUT_NAME="$(printf '%s' "$INPUT_NAME" | sed -E "s/^[[:space:]]+//; s/[[:space:]]+\$//; s/^['\"]//; s/['\"]\$//; s/^[[:space:]]+//; s/[[:space:]]+\$//")"
+if [[ "$INPUT_NAME" == file://* ]]; then
+  INPUT_NAME="${INPUT_NAME#file://}"
+  INPUT_NAME="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.argv[1]))' "$INPUT_NAME")"
+fi
+INPUT_NAME="${INPUT_NAME/#\~\//$HOME/}"
+INPUT_PATH=""   # 絶対パスで指定されたときだけ入る
 case "$INPUT_NAME" in
-  */*|.*|"") echo "入力ファイル名はフォルダを含まない名前だけを指定してください（例: IMG_8930.MOV）" >&2; exit 2 ;;
+  "") echo "入力ファイル名か絶対パスを指定してください（例: IMG_8930.MOV）" >&2; exit 2 ;;
+  /*) INPUT_PATH="$INPUT_NAME"; INPUT_NAME="${INPUT_NAME##*/}" ;;
+  */*|.*) echo "入力はファイル名（例: IMG_8930.MOV）か絶対パス（/ で始まる）で指定してください: $INPUT_NAME" >&2; exit 2 ;;
 esac
 TITLE="50代・非エンジニア|が作ったAI相棒"   # 「|」は改行位置（表示されない）
 CROP="center"; SKIP_TRANSCRIBE=0; NO_TITLE=0; MODE="highlight"; TITLE_SECONDS="2"; END=""
@@ -74,8 +86,9 @@ case "$MODE" in highlight|full) ;; *) echo "--mode は highlight / full のど�
 [[ "$TITLE_SECONDS" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "--title-seconds は秒数（例: 2 や 1.5）を指定してください" >&2; exit 2; }
 [ -z "$END" ] || [[ "$END" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "--end は秒数（例: 81.2）を指定してください" >&2; exit 2; }
 
-INPUT="$IN_DIR/$INPUT_NAME"
+INPUT="${INPUT_PATH:-$IN_DIR/$INPUT_NAME}"
 NAME="${INPUT_NAME%.*}"
+[ -z "$INPUT_PATH" ] || echo "入力（絶対パス）: $INPUT → 出力名は $NAME"
 SRT="$SRT_DIR/$NAME.srt"
 HL="$SRT_DIR/$NAME.highlight.txt"
 COVER_TXT="$SRT_DIR/$NAME.cover.txt"
@@ -89,12 +102,12 @@ for cmd in ffmpeg ffprobe whisper-cli python3 curl; do
   command -v "$cmd" >/dev/null || { echo "$cmd が見つかりません（brew install ffmpeg whisper-cpp）" >&2; exit 1; }
 done
 python3 -c "import PIL" 2>/dev/null || { echo "python3 に Pillow が入っていません（pip3 install pillow）" >&2; exit 1; }
-[ -f "$INPUT" ] || { echo "入力が見つかりません: $INPUT" >&2; ls "$IN_DIR" >&2 2>/dev/null; exit 1; }
-if [ ! -s "$INPUT" ] || [ -e "$IN_DIR/.$INPUT_NAME.icloud" ]; then
+[ -f "$INPUT" ] || { echo "入力が見つかりません: $INPUT" >&2; [ -n "$INPUT_PATH" ] || ls "$IN_DIR" >&2 2>/dev/null; exit 1; }
+if [ ! -s "$INPUT" ] || [ -e "$(dirname "$INPUT")/.$INPUT_NAME.icloud" ]; then
   echo "iCloud から未取得です。取得します（最大 10 分待ちます）..."
   brctl download "$INPUT" || { echo "brctl download に失敗しました" >&2; exit 1; }
   for i in $(seq 1 120); do
-    [ -s "$INPUT" ] && [ ! -e "$IN_DIR/.$INPUT_NAME.icloud" ] && break
+    [ -s "$INPUT" ] && [ ! -e "$(dirname "$INPUT")/.$INPUT_NAME.icloud" ] && break
     sleep 5
   done
   [ -s "$INPUT" ] || { echo "iCloud からの取得が終わりません: $INPUT" >&2; exit 1; }
@@ -170,7 +183,7 @@ if [ "$MODE" = "highlight" ]; then
     DRAFT_ARGS=("$SRT" "$HL" --media "$INPUT")
     [ -s "$MODEL" ] && DRAFT_ARGS+=(--model "$MODEL")
     python3 "$REPO/video/highlight_draft.py" "${DRAFT_ARGS[@]}"
-    RERUN="zsh video/make.sh \"$INPUT_NAME\" --skip-transcribe"
+    RERUN="zsh video/make.sh \"${INPUT_PATH:-$INPUT_NAME}\" --skip-transcribe"   # 絶対パスで呼ばれたときは同じパスで案内
     for o in "${ORIG_OPTS[@]}"; do RERUN="$RERUN \"$o\""; done
     echo
     echo "要点テロップの下書きを作りました。文を短く直してから、次のコマンドで書き出してください:"
