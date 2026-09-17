@@ -8,8 +8,9 @@
   --frame       代わりに背景の画像ファイルを直接指定する（--input の代わり）
   --at 秒       取り出す時刻。省略時は --highlight の最初の q（質問）の中間、それも無ければ 5 秒
   --crop        横動画のとき 9:16 に切る位置（left / center / right。既定 center）
-  --cover-txt   見出しファイル。1 行目が Day 番号（「4」でも「Day 4」でも可）、2〜3 行目が見出し。# で始まる行は無視
+  --cover-txt   見出しファイル。1 行目が Day 番号（「4」でも「Day 4」でも可）、2〜3 行目が見出し。「y: 0.9」の行で見出し位置。# で始まる行は無視
   --day/--line1/--line2   ファイルの代わりに直接指定（両方あれば直接指定が優先）
+  --title-y 0.9  見出し 2 行の下端の位置（4:5 範囲の割合。モニターに重なる回だけ下げる。cover.txt に「y: 0.9」と書いても同じ）
   --badge / --badge-text / --accent   バッジの色・バッジ文字の色（省略時は自動）・見出し 2 行目の色（例: --badge "#FFD400" --accent "#FFD400"）
   --preview-out 一覧で見える範囲（中央 1080×1350）だけを切り抜いた確認用 PNG の出力先
 
@@ -34,21 +35,23 @@ SAFE_BOTTOM = SAFE_TOP + SAFE_H    # = 1635
 
 # ===== 見た目の設定 =====
 DARKEN = 0.6                        # 背景の明度（1.0 = そのまま）
-ACCENT = (2, 132, 199, 255)         # LP の --accent（#0284c7）
+BADGE_COLOR = (255, 212, 0, 255)    # バッジの色（#FFD400 黄。木田決定 2026-09-17）
 WHITE = (255, 255, 255, 255)
-CYAN = (190, 240, 255, 255)         # 動画の a テロップと同じ薄いシアン（2 行目）
+ACCENT = (255, 212, 0, 255)         # 見出し 2 行目の色（#FFD400 黄。1 行目は白）
 OUTLINE = (0, 0, 0, 255)
 
 # 一覧（3 列）のサムネは幅 360px ほど＝この画像の 1/3。そこで読める大きさにしてある
 BADGE_FONT_SIZE = 130               # 「Day N」の文字サイズ（一覧では約 43px）
 BADGE_PAD_X, BADGE_PAD_Y = 44, 18
 BADGE_RADIUS = 34
-BADGE_TOP_Y = SAFE_TOP + 48         # バッジの上端（4:5 範囲の上端近く・左右中央）
+BADGE_TOP_RATIO = 0.09              # バッジの上端 = 4:5 範囲の上端から高さの 9%（= SAFE_TOP + 122）
+BADGE_TOP_Y = SAFE_TOP + round(SAFE_H * BADGE_TOP_RATIO)
 
 HEAD_FONT_MAX = 146                 # 見出しの最大サイズ。幅に収まるまで小さくする
 HEAD_FONT_MIN = 60                  # ここまで縮めても収まらなければ、この大きさで描く（13 文字なら 72px 前後になる）
 HEAD_MAX_WIDTH = 1000
-HEAD_CENTER_Y = SAFE_TOP + round(SAFE_H * 0.58)   # 4:5 範囲の中央よりやや下（= 1068）
+HEAD_BOTTOM_RATIO = 0.85            # 見出し 2 行の下端 = 4:5 範囲の上端から高さの 85%（下端から余白 15%。モニターの下あたり）
+                                    # --title-y や cover.txt の「y: 0.9」で回ごとに変えられる（1.0 = 4:5 範囲の下端）
 HEAD_LINE_GAP = 30
 HEAD_OUTLINE_W = 12                 # 縁取りは太めにして背景に負けないようにする
 HEAD_SHADOW = (10, 10)              # 影のずれ（px）
@@ -81,17 +84,29 @@ def die(msg):
 
 # ---------- 見出しファイル ----------
 def read_cover_txt(path):
-    """1 行目 Day 番号、2〜3 行目 見出し。# 行は無視。無い・足りないときは (None, None, None) を返す。"""
+    """1 行目 Day 番号、2〜3 行目 見出し。「y: 0.9」の行があれば見出しの下端位置。# 行は無視。返り値 (day, l1, l2, title_y)。"""
     if not path or not os.path.isfile(path):
-        return None, None, None
+        return None, None, None, None
     lines = []
     with open(path, encoding="utf-8") as f:
         for raw in f:
             s = raw.strip()
             if s and not s.startswith("#"):
                 lines.append(s)
+    title_y = None
+    rest = []
+    for s in lines:
+        m = re.fullmatch(r"y\s*[:：]\s*([\d.]+)", s, re.IGNORECASE)
+        if m:
+            try:
+                title_y = float(m.group(1))
+            except ValueError:
+                die(f"{path} の位置指定が読めません: {s}（例: y: 0.9）")
+        else:
+            rest.append(s)
+    lines = rest
     if not lines:
-        return None, None, None
+        return None, None, None, title_y
     m = re.fullmatch(r"(?:Day\s*)?(\d+)", lines[0], re.IGNORECASE)
     if m:
         day, heads = m.group(1), lines[1:]
@@ -99,7 +114,7 @@ def read_cover_txt(path):
         day, heads = None, lines          # 1 行目が Day 番号でなければ全部を見出しとして扱う
     l1 = heads[0] if len(heads) > 0 else None
     l2 = heads[1] if len(heads) > 1 else None
-    return day, l1, l2
+    return day, l1, l2, title_y
 
 
 def first_q_mid(highlight_path):
@@ -184,8 +199,8 @@ def draw_shadow_layer(base, items):
     base.alpha_composite(layer)
 
 
-def render(bg, day, line1, line2, font_path, badge=ACCENT, badge_text=None, accent=CYAN):
-    """badge=バッジの色、badge_text=バッジ文字の色（None なら明るさで自動）、accent=見出し 2 行目の色"""
+def render(bg, day, line1, line2, font_path, badge=BADGE_COLOR, badge_text=None, accent=ACCENT, title_y=HEAD_BOTTOM_RATIO):
+    """badge=バッジの色、badge_text=バッジ文字の色（None なら明るさで自動）、accent=見出し 2 行目の色、title_y=見出しの下端（4:5 範囲の割合）"""
     img = bg.copy()
     draw = ImageDraw.Draw(img)
 
@@ -210,7 +225,7 @@ def render(bg, day, line1, line2, font_path, badge=ACCENT, badge_text=None, acce
     hf = fit_font(font_path, longest, HEAD_MAX_WIDTH, HEAD_FONT_MAX, HEAD_FONT_MIN, HEAD_OUTLINE_W)
     line_h = hf.size
     total_h = line_h * len(lines) + HEAD_LINE_GAP * (len(lines) - 1)
-    y = HEAD_CENTER_Y - total_h // 2
+    y = SAFE_TOP + round(SAFE_H * title_y) - total_h   # 下端を合わせる
     items = []
     for i, s in enumerate(lines):
         tw, _ = text_size(hf, s)
@@ -239,9 +254,10 @@ def main():
     ap.add_argument("--font-bold", required=True)
     ap.add_argument("--out", required=True, help="出力 PNG（1080×1920）")
     ap.add_argument("--preview-out", help="中央 1080×1350 を切り抜いた確認用 PNG")
-    ap.add_argument("--badge", default="#0284c7", help="Day バッジの色（既定 #0284c7 = LP の差し色）")
+    ap.add_argument("--title-y", type=float, help=f"見出し 2 行の下端の位置（4:5 範囲の上端 0 〜 下端 1.0 の割合。既定 {HEAD_BOTTOM_RATIO}。cover.txt の「y: 0.9」でも指定可。引数が優先）")
+    ap.add_argument("--badge", default="#FFD400", help="Day バッジの色（既定 #FFD400 黄）")
     ap.add_argument("--badge-text", help="バッジ文字の色（省略時はバッジが明るければ黒、暗ければ白）")
-    ap.add_argument("--accent", default="#bef0ff", help="見出し 2 行目の色（既定 #bef0ff = 薄いシアン。1 行目は常に白）")
+    ap.add_argument("--accent", default="#FFD400", help="見出し 2 行目の色（既定 #FFD400 黄。1 行目は常に白）")
     a = ap.parse_args()
 
     if not a.input and not a.frame:
@@ -249,7 +265,10 @@ def main():
     if not os.path.isfile(a.font_bold):
         die(f"フォントがありません: {a.font_bold}")
 
-    day, l1, l2 = read_cover_txt(a.cover_txt)
+    day, l1, l2, txt_y = read_cover_txt(a.cover_txt)
+    title_y = a.title_y if a.title_y is not None else (txt_y if txt_y is not None else HEAD_BOTTOM_RATIO)
+    if not (0.3 <= title_y <= 1.0):
+        die(f"--title-y は 0.3〜1.0 の割合で指定してください: {title_y}")
     day = a.day or day
     l1 = a.line1 or l1
     l2 = a.line2 or l2
@@ -270,7 +289,7 @@ def main():
     img = render(make_background(src), day, l1, l2, a.font_bold,
                  badge=parse_color(a.badge, "--badge"),
                  badge_text=parse_color(a.badge_text, "--badge-text") if a.badge_text else None,
-                 accent=parse_color(a.accent, "--accent"))
+                 accent=parse_color(a.accent, "--accent"), title_y=title_y)
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     img.convert("RGB").save(a.out, "PNG", optimize=True)
     print(f"  カバー: {a.out}")
