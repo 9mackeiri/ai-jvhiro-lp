@@ -13,9 +13,9 @@
   --preview-out 一覧で見える範囲（中央 1080×1350）だけを切り抜いた確認用 PNG の出力先
 
 できあがり: 1080×1920 の PNG。文字はすべて中央の 1080×1350（4:5）の範囲に収める（一覧ではそこだけが見える）
-  上: 「Day N」の小さなバッジ（LP の差し色の丸角・白文字）
-  中央: 見出し 2 行（太字・白と薄いシアン・黒縁＋影）
-  下: 「50代・非エンジニアが自作したAI相棒」「コメント『最初の一歩』で無料PDF」
+  上: 「Day N」の大きなバッジ（LP の差し色の丸角・白文字。一覧のサムネ（幅 360px 相当）でも読める大きさ）
+  中央やや下: 見出し 2 行（太字・白と薄いシアン・太い黒縁＋影）
+  ※ 一覧では文字が 1/3 に縮むため、小さな文字（下段の説明）は置かない
 """
 import argparse
 import os
@@ -38,25 +38,20 @@ WHITE = (255, 255, 255, 255)
 CYAN = (190, 240, 255, 255)         # 動画の a テロップと同じ薄いシアン（2 行目）
 OUTLINE = (0, 0, 0, 255)
 
-BADGE_FONT_SIZE = 52
-BADGE_PAD_X, BADGE_PAD_Y = 34, 14
-BADGE_RADIUS = 22
-BADGE_CENTER_Y = SAFE_TOP + 130
+# 一覧（3 列）のサムネは幅 360px ほど＝この画像の 1/3。そこで読める大きさにしてある
+BADGE_FONT_SIZE = 130               # 「Day N」の文字サイズ（一覧では約 43px）
+BADGE_PAD_X, BADGE_PAD_Y = 44, 18
+BADGE_RADIUS = 34
+BADGE_TOP_Y = SAFE_TOP + 48         # バッジの上端（4:5 範囲の上端近く・左右中央）
 
-HEAD_FONT_MAX = 112                 # 見出しの最大サイズ。幅に収まるまで小さくする
-HEAD_FONT_MIN = 72
-HEAD_MAX_WIDTH = 980
-HEAD_CENTER_Y = H // 2 + 20
-HEAD_LINE_GAP = 26
-HEAD_OUTLINE_W = 8
-HEAD_SHADOW = (8, 8)                # 影のずれ（px）
-HEAD_SHADOW_BLUR = 10
-
-FOOT_LINES = ["50代・非エンジニアが自作したAI相棒", "コメント『最初の一歩』で無料PDF"]
-FOOT_FONT_SIZE = 40
-FOOT_LINE_GAP = 14
-FOOT_OUTLINE_W = 4
-FOOT_BOTTOM_Y = SAFE_BOTTOM - 110   # 下段 2 行の下端
+HEAD_FONT_MAX = 146                 # 見出しの最大サイズ。幅に収まるまで小さくする
+HEAD_FONT_MIN = 60                  # ここまで縮めても収まらなければ、この大きさで描く（13 文字なら 72px 前後になる）
+HEAD_MAX_WIDTH = 1000
+HEAD_CENTER_Y = SAFE_TOP + round(SAFE_H * 0.58)   # 4:5 範囲の中央よりやや下（= 1068）
+HEAD_LINE_GAP = 30
+HEAD_OUTLINE_W = 12                 # 縁取りは太めにして背景に負けないようにする
+HEAD_SHADOW = (10, 10)              # 影のずれ（px）
+HEAD_SHADOW_BLUR = 14
 
 MISSING_TITLE = "見出し未設定"
 
@@ -145,11 +140,12 @@ def text_size(font, text):
     return r - l, b - t
 
 
-def fit_font(font_path, text, max_width, size_max, size_min):
+def fit_font(font_path, text, max_width, size_max, size_min, outline_w=0):
+    """幅（縁取り込み）が max_width に収まる最大のサイズを返す。size_min まで下げても収まらなければ size_min。"""
     size = size_max
     while size > size_min:
         f = ImageFont.truetype(font_path, size)
-        if text_size(f, text)[0] <= max_width:
+        if text_size(f, text)[0] + outline_w * 2 <= max_width:
             return f
         size -= 2
     return ImageFont.truetype(font_path, size_min)
@@ -180,7 +176,7 @@ def render(bg, day, line1, line2, font_path):
         label = f"Day {day}"
         tw, th = text_size(bf, label)
         bw, bh = tw + BADGE_PAD_X * 2, BADGE_FONT_SIZE + BADGE_PAD_Y * 2
-        bx, by = (W - bw) // 2, BADGE_CENTER_Y - bh // 2
+        bx, by = (W - bw) // 2, BADGE_TOP_Y
         draw.rounded_rectangle((bx, by, bx + bw, by + bh), radius=BADGE_RADIUS, fill=ACCENT)
         # 文字の縦位置は bbox の上端を差し引いて中央に
         l, t, r, b = bf.getbbox(label)
@@ -192,7 +188,7 @@ def render(bg, day, line1, line2, font_path):
         lines = [MISSING_TITLE]
     # 2 行とも同じサイズにする（長い方に合わせる）
     longest = max(lines, key=lambda s: text_size(ImageFont.truetype(font_path, HEAD_FONT_MAX), s)[0])
-    hf = fit_font(font_path, longest, HEAD_MAX_WIDTH, HEAD_FONT_MAX, HEAD_FONT_MIN)
+    hf = fit_font(font_path, longest, HEAD_MAX_WIDTH, HEAD_FONT_MAX, HEAD_FONT_MIN, HEAD_OUTLINE_W)
     line_h = hf.size
     total_h = line_h * len(lines) + HEAD_LINE_GAP * (len(lines) - 1)
     y = HEAD_CENTER_Y - total_h // 2
@@ -207,16 +203,6 @@ def render(bg, day, line1, line2, font_path):
     draw = ImageDraw.Draw(img)
     for xy, s, f, ow, color in items:
         draw_outlined(draw, xy, s, f, color, ow)
-
-    # --- 下: 小さく 2 行 ---
-    ff = ImageFont.truetype(font_path, FOOT_FONT_SIZE)
-    fh = FOOT_FONT_SIZE
-    y = FOOT_BOTTOM_Y - (fh * len(FOOT_LINES) + FOOT_LINE_GAP * (len(FOOT_LINES) - 1))
-    for s in FOOT_LINES:
-        tw, _ = text_size(ff, s)
-        l, t, r, b = ff.getbbox(s)
-        draw_outlined(draw, ((W - tw) // 2 - l, y - t + (fh - (b - t)) // 2), s, ff, WHITE, FOOT_OUTLINE_W)
-        y += fh + FOOT_LINE_GAP
     return img
 
 
