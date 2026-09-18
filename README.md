@@ -88,3 +88,9 @@ push すると GitHub Pages が自動で再配信します。反映まで通常 
 - 文面を直したら `zsh pdf/build.sh` で再生成し、`git add -A && git commit && git push` で公開に反映
 - 再生成しても PDF のファイル名（URL）は変わらない。URL を変えたいときは `assets/pdf/` の PDF を削除してから再生成する
 - iCloud の保存先：`Cursor/インスタ投稿/50代がAIを始めるときに最初にやる5つ.pdf`（再生成のたびに上書き）
+
+## マーケティング担当（sns-marketer）
+
+- `.claude/agents/sns-marketer.md`：リール／TikTokの傾向調査、インサイトの数字の分析、次の Day N のつかみ・カバー見出し・キャプション・ハッシュタグ案を出す担当（調査とレポート作成のみ。コード・動画・設定には触れない）
+- 呼び方の例：「sns-marketerに今週の調査をさせて」「sns-marketerにこのインサイトを分析させて」＋スクショのパス
+- レポートの置き場：正本 `marketing/reports/YYYY-MM-DD_テーマ.md`、コピー iCloud `Cursor/インスタ投稿/マーケ調査/`（同じファイル名）
