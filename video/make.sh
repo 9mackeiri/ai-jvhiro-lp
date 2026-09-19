@@ -3,8 +3,11 @@
 #
 # 使い方:
 #   cd ~/dev/ai-jvhiro-lp
-#   zsh video/make.sh <入力ファイル名> [--mode highlight|full] [--title "見出し"] [--title-seconds 2] [--crop left|center|right] [--end 秒] [--skip-transcribe] [--no-title]
+#   zsh video/make.sh <入力ファイル名> [--mode highlight|full] [--title "見出し"] [--title-seconds 2] [--crop left|center|right] [--end 秒] [--cut 開始-終了 ...] [--skip-transcribe] [--no-title]
 #   --end 秒: その時刻で動画を終える（末尾 0.5 秒は映像と音声をフェードアウト）。撮り終わりのブレなどを切るのに使う
+#   --cut 開始-終了: その区間（元動画の秒）を取り除いて前後を直接つなぐ（複数可）。長い無音を詰めるのに使う
+#     映像はそのままつなぎ、音声は切れ目の前後 0.05 秒だけフェードしてプチ音を防ぐ。highlight.txt の時刻と --end は元動画の秒のままでよく、切った分は自動でずらす
+#     画面に 1 秒周期で点滅する時計があるときは、長さをちょうど整数秒にすると点滅のリズムがつながる（整数秒でないと警告）。--mode full では使えない
 #   見出しが出ている間（--title-seconds 秒、既定 2）は q（質問）のテロップを出さず、消えた直後から出す
 #
 #   入力は iCloud の「Cursor/インスタ投稿/動画/入力」に置いたファイル名（例: IMG_8930.MOV）か、動画の絶対パス
@@ -68,13 +71,14 @@ case "$INPUT_NAME" in
   */*|.*) echo "入力はファイル名（例: IMG_8930.MOV）か絶対パス（/ で始まる）で指定してください: $INPUT_NAME" >&2; exit 2 ;;
 esac
 TITLE="50代・非エンジニア|が作ったAI相棒"   # 「|」は改行位置（表示されない）
-CROP="center"; SKIP_TRANSCRIBE=0; NO_TITLE=0; MODE="highlight"; TITLE_SECONDS="2"; END=""
+CROP="center"; SKIP_TRANSCRIBE=0; NO_TITLE=0; MODE="highlight"; TITLE_SECONDS="2"; END=""; CUTS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --mode) [ $# -ge 2 ] || usage; MODE="$2"; shift 2 ;;
     --title) [ $# -ge 2 ] || usage; TITLE="$2"; shift 2 ;;
     --title-seconds) [ $# -ge 2 ] || usage; TITLE_SECONDS="$2"; shift 2 ;;
     --end) [ $# -ge 2 ] || usage; END="$2"; shift 2 ;;
+    --cut) [ $# -ge 2 ] || usage; CUTS+=("$2"); shift 2 ;;
     --crop) [ $# -ge 2 ] || usage; CROP="$2"; shift 2 ;;
     --skip-transcribe) SKIP_TRANSCRIBE=1; shift ;;
     --no-title) NO_TITLE=1; shift ;;
@@ -85,6 +89,8 @@ case "$CROP" in left|center|right) ;; *) echo "--crop は left / center / right 
 case "$MODE" in highlight|full) ;; *) echo "--mode は highlight / full のどちらか" >&2; exit 2 ;; esac
 [[ "$TITLE_SECONDS" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "--title-seconds は秒数（例: 2 や 1.5）を指定してください" >&2; exit 2; }
 [ -z "$END" ] || [[ "$END" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "--end は秒数（例: 81.2）を指定してください" >&2; exit 2; }
+for c in "${CUTS[@]}"; do [[ "$c" =~ ^[0-9]+(\.[0-9]+)?-[0-9]+(\.[0-9]+)?$ ]] || { echo "--cut は 開始-終了 の秒数（例: 34.65-37.65）で指定してください: $c" >&2; exit 2; }; done
+[ ${#CUTS[@]} -eq 0 ] || [ "$MODE" = "highlight" ] || { echo "--cut は --mode highlight でだけ使えます" >&2; exit 2; }
 
 INPUT="${INPUT_PATH:-$IN_DIR/$INPUT_NAME}"
 NAME="${INPUT_NAME%.*}"
@@ -167,6 +173,68 @@ FADE=0.5
 if [ -n "$END" ]; then
   python3 -c "import sys; d=float(sys.argv[1]); e=float(sys.argv[2]); f=float(sys.argv[3]); sys.exit(0 if f <= e <= d else 1)" "$DURATION" "$END" "$FADE" \
     || { echo "--end は ${FADE} 秒以上、動画の長さ（${DURATION} 秒）以下にしてください" >&2; exit 1; }
+fi
+# --cut: 区間を取り除く。元動画の秒で書かれた highlight.txt と --end を、切った後の秒に直す
+VCUT="[0:v]"; ACUT=""; HL_USE="$HL"   # VCUT は映像フィルタの先頭（--cut があれば select で区間を除く）
+if [ ${#CUTS[@]} -gt 0 ]; then
+  [ -s "$HL" ] || { echo "--cut を使うには先に $HL が必要です（一度 --cut なしで実行して下書きを整えてください）" >&2; exit 1; }
+  CUT_OUT=("${(@f)$(python3 - "$DURATION" "${END:-}" "$HL" "$WORK/hl_cut.txt" "${CUTS[@]}" <<'EOF'
+import re, sys
+dur = float(sys.argv[1]); end = sys.argv[2]; hl_in = sys.argv[3]; hl_out = sys.argv[4]
+cuts = []
+for c in sys.argv[5:]:
+    s, e = (float(x) for x in c.split("-"))
+    if not (0 <= s < e <= dur):
+        sys.exit(f"--cut {c}: 0 以上、動画の長さ（{dur} 秒）以下で、開始 < 終了 にしてください")
+    cuts.append((s, e))
+cuts.sort()
+for (s1, e1), (s2, e2) in zip(cuts, cuts[1:]):
+    if s2 < e1:
+        sys.exit(f"--cut の区間が重なっています: {s1}-{e1} と {s2}-{e2}")
+for s, e in cuts:
+    if abs((e - s) - round(e - s)) > 0.05:
+        print(f"  警告: --cut {s}-{e} の長さ {e - s:.2f} 秒は整数秒ではありません（1 秒周期で点滅する時計があると繋ぎ目でリズムがずれます）", file=sys.stderr)
+    if end and s < float(end) < e:
+        sys.exit(f"--end {end} が --cut {s}-{e} の中にあります")
+def f(t):  # 元動画の秒 → 切った後の秒
+    out = t
+    for s, e in cuts:
+        if t >= e: out -= e - s
+        elif t > s: out -= t - s
+    return out
+lines = []
+dropped = 0
+for raw in open(hl_in, encoding="utf-8-sig"):
+    line = raw.rstrip("\n")
+    m = re.match(r"^\s*([\d.]+)\s*-\s*([\d.]+)(\s*\|.*)$", line)
+    if not m or line.lstrip().startswith("#"):
+        lines.append(line); continue
+    s, e = f(float(m.group(1))), f(float(m.group(2)))
+    if e - s < 0.05:
+        lines.append("# （--cut で消えた区間）" + line); dropped += 1; continue
+    lines.append(f"{s:.2f}-{e:.2f}{m.group(3)}")
+with open(hl_out, "w", encoding="utf-8") as fo:
+    fo.write("# make.sh が --cut に合わせて時刻をずらした一時ファイル（元は " + hl_in + "）\n")
+    fo.write("\n".join(lines) + "\n")
+total = sum(e - s for s, e in cuts)
+between = "+".join(f"between(t,{s},{e})" for s, e in cuts)
+# 切れ目の前 0.05 秒で音量を 1→0、後ろ 0.05 秒で 0→1 にする（afade は区間の外側まで消してしまうので volume の式で書く）
+vol = "1"
+for s, e in cuts:
+    vol = f"if(between(t,{s - 0.05:.3f},{s}),({s}-t)/0.05,if(between(t,{e},{e + 0.05:.3f}),(t-{e})/0.05,{vol}))"
+afades = f"volume='{vol}':eval=frame,"
+print(f"{dur - total:.3f}")
+print(f"{f(float(end)):.3f}" if end else "")
+print(f"[0:v]select='not({between})',setpts=N/FRAME_RATE/TB[cut];[cut]")
+print(f"{afades}aselect='not({between})',asetpts=N/SR/TB,")
+print(f"{total:.2f}")
+print(str(dropped))
+EOF
+)}")
+  DURATION="${CUT_OUT[1]}"; END="${CUT_OUT[2]}"; VCUT="${CUT_OUT[3]}"; ACUT="${CUT_OUT[4]}"; HL_USE="$WORK/hl_cut.txt"
+  echo "区間を取り除きます: ${CUTS[*]}（合計 ${CUT_OUT[5]} 秒。切った後の長さ ${DURATION} 秒。テロップ時刻をずらした一時ファイル: $HL_USE、消えたテロップ ${CUT_OUT[6]} 件）"
+fi
+if [ -n "$END" ]; then
   DURATION="$END"
   FADE_ST=$(python3 -c "print(round(float('$END')-$FADE, 3))")
   VFADE=",fade=t=out:st=${FADE_ST}:d=${FADE}"
@@ -192,7 +260,7 @@ if [ "$MODE" = "highlight" ]; then
     exit 0
   fi
   echo "[2/4] 要点テロップと見出しの画像を作成（$HL）..."
-  python3 "$REPO/video/render_overlays.py" --highlight "$HL" --duration "$DURATION" \
+  python3 "$REPO/video/render_overlays.py" --highlight "$HL_USE" --duration "$DURATION" \
     --out-dir "$WORK/ov" --font-bold "$FONT_BOLD" "${TITLE_ARGS[@]}"
 else
   echo "[2/4] 全文字幕と見出しの画像を作成（$SRT）..."
@@ -225,10 +293,10 @@ case "$CROP" in
   center) CX="(iw-1080)/2" ;;
   right)  CX="iw-1080" ;;
 esac
-VF="scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920:${CX}:(ih-1920)/2,fps=30,format=yuv420p[base];[1:v]format=rgba[ov];[base][ov]overlay=0:0:eof_action=pass:format=auto,format=yuv420p${VFADE}"
+VF="${VCUT}scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920:${CX}:(ih-1920)/2,fps=30,format=yuv420p[base];[1:v]format=rgba[ov];[base][ov]overlay=0:0:eof_action=pass:format=auto,format=yuv420p${VFADE}"
 ffmpeg -y -v error -stats -i "$INPUT" -f concat -safe 0 -i "$WORK/ov/list.txt" \
-  -filter_complex "[0:v]$VF" \
-  -map 0:a:0 -af "${AF}${AFADE}" "${TRIM_ARGS[@]}" \
+  -filter_complex "$VF" \
+  -map 0:a:0 -af "${ACUT}${AF}${AFADE}" "${TRIM_ARGS[@]}" \
   -c:v libx264 -preset medium -crf 20 -profile:v high -level 4.1 -pix_fmt yuv420p -r 30 \
   -c:a aac -b:a 192k -ar 48000 -ac 2 -movflags +faststart -shortest \
   "$WORK/out.mp4"
