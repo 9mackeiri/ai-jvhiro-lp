@@ -116,7 +116,7 @@ def parse_highlight(path):
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
-        parts = [p.strip() for p in line.split("|")]
+        parts = [p.strip() for p in line.split("|", 2)]  # 3 つ目（文字）の中の「|」は手動改行として残す
         if len(parts) != 3:
             print(f"警告 {ln} 行目: 「開始-終了 | 種類 | 文字」の形ではないので飛ばします: {line!r}", file=sys.stderr)
             continue
@@ -164,6 +164,11 @@ def _segments(line):
 # ---------- 文字の折り返し ----------
 KINSOKU_TAIL = "、。！？!?」）)"          # 行頭に来てはいけない文字
 BREAK_AFTER = "、。！？!?」）)・／/ "      # ここの直後なら折り返してよい（読点・中黒・スペース）
+PARTICLES = "はがをにでとのもへや"           # 助詞。この直後がひらがな以外なら文節の切れ目とみなす（最終行の調整のときだけ使う）
+ORPHAN_MAX_CHARS = 2         # 自動折り返しの最終行がこの文字数以下なら、行の長さが近くなるよう折り直す
+REBALANCE_STEP = 8           # 折り直しで試す幅の刻み（px）
+REBALANCE_MIN_RATIO = 0.4    # 折り直しで試す幅の下限（最大幅に対する割合）
+SOFT_LOOKBACK = 4            # 折り直しで、収まる位置から何文字前まで文節の切れ目を探すか
 NUM_UNIT_RE = re.compile(r"[+\-−＋]?[\d,\.]+\s*(?:%|％|円|個|件|万円|倍|人|日|か月|ヶ月|分|秒|時間|回|kg|g|ml|L)?")
 
 
@@ -176,49 +181,106 @@ def _inside_protected(pos, spans):
     return any(a < pos < b for a, b in spans)
 
 
+def _is_bunsetsu_break(para, k):
+    """k の直前が助詞で、直後がひらがな以外（漢字・カタカナ・数字など）なら、文節の切れ目とみなす。強調（*…*）の途中は切れ目にしない。"""
+    if para.count(EMPH_ON, 0, k) > para.count(EMPH_OFF, 0, k):
+        return False
+    j = k
+    while j < len(para) and para[j] in (EMPH_ON, EMPH_OFF):
+        j += 1
+    if k < 1 or j >= len(para) or para[k - 1] not in PARTICLES:
+        return False
+    return not ("\u3041" <= para[j] <= "\u309f") and para[j] not in KINSOKU_TAIL
+
+
+def _wrap_para(para, font, max_width, soft=False, forced=None):
+    """1 段落を描画幅（px）で折り返す。soft=True のときは (2) で文節の切れ目（助詞の直後）を探す。
+    forced（リスト）を渡すと、切れ目でない位置でやむなく折った回数だけ要素を足す。"""
+    out = []
+    while para and font.getlength(_plain(para)) > max_width:
+        whole = para
+        spans = _protected_spans(para)
+        # max_width に収まる最大の文字数
+        fit = 1
+        while fit < len(para) and font.getlength(_plain(para[:fit + 1])) <= max_width:
+            fit += 1
+        # (1) 収まる範囲で最も後ろにある「折ってよい文字」の直後
+        cut = 0
+        for k in range(fit, 0, -1):
+            if para[k - 1] in BREAK_AFTER and not _inside_protected(k, spans):
+                cut = k
+                break
+        # (2) 無ければ、数字＋単位を割らない最も後ろの位置
+        if cut == 0:
+            cut = fit
+            while cut > 1 and _inside_protected(cut, spans):
+                cut -= 1
+            natural = False
+            if soft:
+                for k in range(cut, max(1, cut - SOFT_LOOKBACK), -1):
+                    if _is_bunsetsu_break(para, k) and not _inside_protected(k, spans):
+                        cut, natural = k, True
+                        break
+        else:
+            natural = True
+        while cut < len(para):  # 行頭の句読点を避ける（強調の印を挟んでいても見る）
+            j = cut
+            while j < len(para) and para[j] in (EMPH_ON, EMPH_OFF):
+                j += 1
+            if j < len(para) and para[j] in KINSOKU_TAIL:
+                cut = j + 1
+            else:
+                break
+        if forced is not None and not natural and para[cut - 1] not in BREAK_AFTER:  # 行頭の句読点を送った結果、句読点で終わるなら切れ目とみなす
+            forced.append(cut)
+        head, para = para[:cut].rstrip(), para[cut:].lstrip()
+        # 強調の印が行の切れ目に来たら、印だけを次の行へ送る（前の行の末尾で強調を開いたままにしない）
+        if head.endswith(EMPH_ON):
+            head, para = head[:-1].rstrip(), EMPH_ON + para
+        # 行をまたぐ強調は、前の行で閉じて次の行で開き直す
+        if head.count(EMPH_ON) > head.count(EMPH_OFF):
+            head, para = head + EMPH_OFF, EMPH_ON + para
+        if not _plain(head):  # 1 文字も進まなかった（幅より長い数字＋単位が行頭にある）。止まらなくなるので、残りは折らずに 1 行で出す
+            out.append(whole)
+            para = ""
+            break
+        out.append(head)
+    if para:
+        out.append(para)
+    return [l for l in out if _plain(l)]
+
+
+def _rebalance(para, font, max_width, lines):
+    """最終行が 1〜2 文字だけになったとき、行数を増やさずに、各行の長さが近くなる折り方を探す。見つからなければ元のまま。"""
+    best, best_score = lines, None
+    w = max_width - REBALANCE_STEP
+    while w >= max_width * REBALANCE_MIN_RATIO:
+        forced = []
+        cand = _wrap_para(para, font, w, soft=True, forced=forced)
+        widths = [font.getlength(_plain(l)) for l in cand]
+        if len(cand) == len(lines) and len(_plain(cand[-1])) > ORPHAN_MAX_CHARS and max(widths) <= max_width:
+            # 切れ目でない位置で折った回数が少ない案を優先し、同じなら行の長さの差が小さい案にする
+            score = (len(forced), max(widths) - min(widths))
+            if best_score is None or score < best_score:
+                best, best_score = cand, score
+        w -= REBALANCE_STEP
+    return best
+
+
 def wrap_px(text, font, max_width):
     """描画幅（px）で折り返す。
-    優先順位: (1) 読点・中黒・スペースの直後 → (2) 数字＋単位の途中でない位置。行頭に句読点は置かない。「|」は手動改行。"""
+    優先順位: (1) 読点・中黒・スペースの直後 → (2) 数字＋単位の途中でない位置。行頭に句読点は置かない。「|」は手動改行。
+    手動改行が無い文字で最終行が 1〜2 文字だけになったら、改行位置を前へずらして行の長さを近づける。"""
     text = text.replace("|", "\n")
+    manual = "\n" in text
     out = []
     for para in text.split("\n"):
         para = para.strip()
-        while para and font.getlength(_plain(para)) > max_width:
-            spans = _protected_spans(para)
-            # max_width に収まる最大の文字数
-            fit = 1
-            while fit < len(para) and font.getlength(_plain(para[:fit + 1])) <= max_width:
-                fit += 1
-            # (1) 収まる範囲で最も後ろにある「折ってよい文字」の直後
-            cut = 0
-            for k in range(fit, 0, -1):
-                if para[k - 1] in BREAK_AFTER and not _inside_protected(k, spans):
-                    cut = k
-                    break
-            # (2) 無ければ、数字＋単位を割らない最も後ろの位置
-            if cut == 0:
-                cut = fit
-                while cut > 1 and _inside_protected(cut, spans):
-                    cut -= 1
-            while cut < len(para):  # 行頭の句読点を避ける（強調の印を挟んでいても見る）
-                j = cut
-                while j < len(para) and para[j] in (EMPH_ON, EMPH_OFF):
-                    j += 1
-                if j < len(para) and para[j] in KINSOKU_TAIL:
-                    cut = j + 1
-                else:
-                    break
-            head, para = para[:cut].rstrip(), para[cut:].lstrip()
-            # 強調の印が行の切れ目に来たら、印だけを次の行へ送る（前の行の末尾で強調を開いたままにしない）
-            if head.endswith(EMPH_ON):
-                head, para = head[:-1].rstrip(), EMPH_ON + para
-            # 行をまたぐ強調は、前の行で閉じて次の行で開き直す
-            if head.count(EMPH_ON) > head.count(EMPH_OFF):
-                head, para = head + EMPH_OFF, EMPH_ON + para
-            out.append(head)
-        if para:
-            out.append(para)
-    return [l for l in out if _plain(l)]
+        lines = _wrap_para(para, font, max_width)
+        if not manual and len(lines) >= 2 and len(_plain(lines[-1])) <= ORPHAN_MAX_CHARS:
+            lines = _rebalance(para, font, max_width, lines)
+        out.extend(lines)
+    return out
 
 
 # ---------- 描画 ----------
