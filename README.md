@@ -12,6 +12,7 @@
 | ファイル | 役割 |
 |---|---|
 | `index.html` | ページ本体（文面・配色・OGP はすべてここ） |
+| `monitor/index.html` | ゼロ期モニター募集ページ（noindex・公開 URL は https://9mackeiri.github.io/ai-jvhiro-lp/monitor/ ）。締切は末尾 `<script>` の `CLOSE_AT` で切り替わる（2026-10-19 0:00 JST 以降は「締め切りました」表示） |
 | `assets/icon.jpg` | アイコン原本（1024×1024）。ページからは直接使わない |
 | `assets/icon-480.jpg` | ページ表示用に縮小したアイコン（480×480） |
 | `assets/ogp.jpg` | SNS でリンクを貼ったときに出る画像（1200×630） |
